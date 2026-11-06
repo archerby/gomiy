@@ -83,10 +83,10 @@ input[type=range] { accent-color: var(--accent); width: 130px; }
 </style>
 
 <div id="app"></div>
-<div id="loading"><div class="box"><div class="t">Гомий по плану Макушникова</div><div class="bar"><i id="prog"></i></div><div class="s" id="stat">Загружаю рельеф и постройки…</div></div></div>
+<div id="loading"><div class="box"><div class="t">Гомий XII – середины XIII в.</div><div class="bar"><i id="prog"></i></div><div class="s" id="stat">Загружаю рельеф и постройки…</div></div></div>
 <div id="title" class="panel">
-  <h1>Гомий по плану Макушникова</h1>
-  <p>Реконструкция по плану «Гомель в XII–XIII вв.»: детинец над Сожем у устья Гомеюка, окольный город в клине между оврагами Гомеюк и Киевский спуск, посады к северу и югу.</p>
+  <h1>Гомий XII – середины XIII в.</h1>
+  <p>Реконструкция по книгам О. А. Макушникова и старым планам: детинец над Сожем у устья Гомеюка, окольный город между оврагами Гомеюк и Киевский спуск с напольным рвом, торг к северу от детинца, посады до Ильинского и Боярского спусков. Около 45 га.</p>
 </div>
 <div id="hint" class="panel"></div>
 <div id="bar" class="panel">
@@ -102,10 +102,10 @@ input[type=range] { accent-color: var(--accent); width: 130px; }
   <button data-k="KeyA" aria-label="Влево">◀</button><button data-k="KeyS" aria-label="Назад">▼</button><button data-k="KeyD" aria-label="Вправо">▶</button></div>
 <div id="info" class="panel" hidden>
   <h2>Что здесь настоящее</h2>
-  <p><span class="tag doc">данные</span>Положение и рельеф мыса: высоты FABDEM, реки и овраги по OpenStreetMap, план Гомеля 1913 г., снимок Corona 1964 г.</p>
-  <p><span class="tag doc">книга</span>О. А. Макушников, «Гомель с древнейших времён до конца XVIII века» (2002): план «Гомель в XII–XIII вв.» (овраги, детинец, окольный город, посады); детинец на месте здания музея (с. 36); наземные деревянные дома, мастерские, кузнечное дело (с. 30–31). План привязан к рельефу по устьям двух оврагов: центр детинца лёг в 10 м от дворца.</p>
+  <p><span class="tag doc">данные</span>Рельеф: FABDEM, шов тайлов исправлен по Copernicus GLO-30; овраг Гомеюк по GEDTM30. Реки и улицы по OpenStreetMap. Овраги (Киевский и Боярский спуски, врезы южного посада, Ильинский спуск) по плану окрестностей Гомеля 1838 г. и плану 1913 г.</p>
+  <p><span class="tag doc">книга</span>О. А. Макушников, «Гомель с древнейших времён до конца XVIII века» (2002): план «Гомель в XII–XIII вв.» (овраги, детинец, окольный город, посады); детинец на месте здания музея (с. 37); ров между верховьями оврагов, ворота и торг по описанию города XVI–XVIII вв. (с. 168–171); плинфяный храм на детинце (с. 52). Площади, ров детинца, дома и дворы — по его монографии «Гомельское Поднепровье в V – середине XIII вв.» (с. 66–77). План привязан к рельефу по устьям двух оврагов: центр детинца лёг в 10 м от дворца.</p>
   <p><span class="tag doc">план</span>«План местечка Гомля» XVIII в.: привязан по замку и переправе; подтверждает место детинца (внутри вала замка), Гомеюк и берег. По нему восстановлены острова и вторая протока Сожа (сейчас пойма левого берега) и выход Киевского спуска к реке.</p>
-  <p><span class="tag hyp">гипотеза</span>Глубина оврагов, размеры валов и рвов, ворота и башни, сеть улиц, усадьбы и все постройки, церковь в детинце, пристань, поля и лес. Дома отапливаются «по-чёрному», без труб.</p>
+  <p><span class="tag hyp">гипотеза</span>Высота валов и размеры напольного рва, число башен, облик храмов (по аналогам Вщижа и Чернигова), деревянная церковь у Киевского спуска, сеть улиц, усадьбы и постройки, место торга и пристани, поля и лес. Дома отапливаются «по-чёрному», без труб.</p>
   <h3>Как ходить</h3>
   <ul><li>«Обзор»: тянуть мышью или пальцем, колесо или щипок для масштаба.</li>
   <li>«Прогулка»: WASD или стрелки, Shift для бега, тянуть мышью для поворота головы. На телефоне кнопки справа.</li></ul>
@@ -118,7 +118,7 @@ input[type=range] { accent-color: var(--accent); width: 130px; }
 <div id="gallery" hidden>
   <div class="wrap">
     <div class="top"><h2 id="g-title">Кадры</h2>
-      <div class="group"><button id="g-flux" aria-pressed="true">FLUX</button><button id="g-photo" aria-pressed="false">Gemini</button><button id="g-render" aria-pressed="false">Рендер</button><button id="g-close">Закрыть</button></div></div>
+      <div class="group"><button id="g-render" aria-pressed="true">Рендер</button><button id="g-flux" aria-pressed="false">FLUX (старая версия)</button><button id="g-photo" aria-pressed="false">Gemini (старая версия)</button><button id="g-close">Закрыть</button></div></div>
     <figure><img id="g-img" alt=""></figure>
     <figcaption id="g-cap"></figcaption>
     <div id="thumbs"></div>
@@ -440,24 +440,24 @@ document.getElementById("b-info").addEventListener("click", (e) => { const p = d
 
 // ---------- gallery (Blender render vs photoreal re-draw of the same render)
 const SHOTS = [
-  ["aerial_se", "С востока, из-за Сожа", "Детинец над рекой у устья Гомеюка, за ним клин окольного города между оврагами, посады к северу и югу."],
+  ["aerial_se", "С востока, из-за Сожа", "Детинец над рекой у устья Гомеюка с плинфяным храмом, за ним окольный город с торгом, южный посад вдоль Сожа, северный — за Киевским спуском."],
   ["aerial_nw", "С полей, с северо-запада", "Поля на плато, полевая дорога с путниками, северный посад, окольный город с валом вдоль Киевского спуска, детинец над Сожем."],
-  ["west_gate", "Западные ворота", "Ворота на западном острие окольного города и мост через верховье оврага."],
+  ["west_gate", "Речицкие ворота", "Западные ворота окольного города у вершины Гомеюка (место Речицкой брамы XVI–XVIII вв., у нынешнего облисполкома) и мост через ров."],
   ["street", "Главная улица", "Улица окольного города: срубы под соломой, плетни, в конце башни детинца.", "Пруд слева дорисован FLUX, в модели его нет."],
-  ["detinets", "Ворота детинца", "Мост через ров к надвратной башне; стены из городней с боевым ходом, башни по кольцу, за стеной княжий двор."],
+  ["detinets", "Ворота детинца", "Мост через ров (около 22 м) к надвратной башне на севере, к торгу; городни с башнями с напольной стороны, над обрывом частокол, за стеной княжий двор."],
   ["landing", "Пристань", "Долблёнки у мостков в устье Киевского спуска, над бровкой стены и дома.", "FLUX принял деревья на склоне за хижины на сваях: для этого кадра точнее вариант Gemini."],
 ];
-let gIdx = 0, gKind = "flux";
+let gIdx = 0, gKind = "render";
 const gImg = document.getElementById("g-img"), gCap = document.getElementById("g-cap"), gTitle = document.getElementById("g-title"), thumbs = document.getElementById("thumbs");
 function gShow(i) { gIdx = i; const s = SHOTS[i];
   gImg.src = `gallery/${gKind}_${s[0]}.jpg`; gImg.alt = s[1]; gTitle.textContent = s[1];
-  const NOTE = { flux: "Локальная перерисовка рендера моделью FLUX 3 Klein (Findus): геометрия наша, фактуры и детали дорисованы.",
-    photo: "Перерисовка рендера моделью Gemini через OpenRouter: композиция наша, модель свободнее меняет детали.",
-    render: "Исходный рендер Blender: рельеф FABDEM, план Макушникова, постройки по гипотезе." };
+  const NOTE = { flux: "Перерисовка FLUX 3 Klein — по ПРЕДЫДУЩЕЙ версии модели (до 07.11.2026: окольный город меньше, деревянная церковь). Фактуры и детали дорисованы.",
+    photo: "Перерисовка Gemini — по ПРЕДЫДУЩЕЙ версии модели (до 07.11.2026). Модель свободнее меняет детали.",
+    render: "Рендер Blender текущей модели (07.11.2026): рельеф FABDEM/GLO-30/GEDTM30, план по книгам Макушникова и плану 1838 г., постройки по гипотезе." };
   gCap.innerHTML = `${s[2]}<small>${NOTE[gKind]}${gKind === "flux" && s[3] ? " " + s[3] : ""}</small>`;
   thumbs.querySelectorAll("button").forEach((b, k) => b.setAttribute("aria-pressed", k === i)); }
 SHOTS.forEach((s, i) => { const b = document.createElement("button"); b.setAttribute("aria-label", s[1]);
-  b.innerHTML = `<img src="gallery/flux_${s[0]}.jpg" alt="">`; b.addEventListener("click", () => gShow(i)); thumbs.appendChild(b); });
+  b.innerHTML = `<img src="gallery/render_${s[0]}.jpg" alt="">`; b.addEventListener("click", () => gShow(i)); thumbs.appendChild(b); });
 function gKindSet(k) { gKind = k; for (const id of ["flux", "photo", "render"]) document.getElementById("g-" + id).setAttribute("aria-pressed", k === id); gShow(gIdx); }
 document.getElementById("g-flux").addEventListener("click", () => gKindSet("flux"));
 document.getElementById("g-photo").addEventListener("click", () => gKindSet("photo"));
