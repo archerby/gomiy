@@ -105,6 +105,8 @@ input[type=range] { accent-color: var(--accent); width: 130px; }
   <p><span class="tag doc">данные</span>Рельеф: FABDEM, шов тайлов исправлен по Copernicus GLO-30; овраг Гомеюк по GEDTM30. Реки и улицы по OpenStreetMap. Овраги (Киевский и Боярский спуски, врезы южного посада, Ильинский спуск) по плану окрестностей Гомеля 1838 г. и плану 1913 г.</p>
   <p><span class="tag doc">книга</span>О. А. Макушников, «Гомель с древнейших времён до конца XVIII века» (2002): план «Гомель в XII–XIII вв.» (овраги, детинец, окольный город, посады); детинец на месте здания музея (с. 37); ров между верховьями оврагов, ворота и торг по описанию города XVI–XVIII вв. (с. 168–171); плинфяный храм на детинце (с. 52). Площади, ров детинца, дома и дворы — по его монографии «Гомельское Поднепровье в V – середине XIII вв.» (с. 66–77). План привязан к рельефу по устьям двух оврагов: центр детинца лёг в 10 м от дворца.</p>
   <p><span class="tag doc">план</span>«План местечка Гомля» XVIII в.: привязан по замку и переправе; подтверждает место детинца (внутри вала замка), Гомеюк и берег. По нему восстановлены острова и вторая протока Сожа (сейчас пойма левого берега) и выход Киевского спуска к реке.</p>
+  <p><span class="tag doc">раскопки</span>Дома и дворы по монографии Макушникова (2009, с. 70–75): наземные срубы 18–36 м² на подклетах, рубка «в обло» с выпусками углов, дворы 240–360 м² с постройками по краям и пустой серединой, ограды на кольях, частокол вдоль улицы посада. Мастерские по находкам: оружейная («двор Фёдора», два подклета) и ювелирно-литейная (7,8 × 4,2 м, тамбур с запада) на западе окольного города, сгорели около 1239 г. (с. 102, 110, 112); шлак и домницы во дворах (с. 99); гончары на южном посаде (с. 103); костерез (с. 98). Подол и пристань в устье Гомеюка: щепа и кожа в мокром слое 1986 г., керамика на отмели (с. 72–73).</p>
+  <p><span class="tag hyp">гипотеза</span>Крыши (солома на посадах, тёс на 30–50 % домов ядра — по аналогу Вщижа), двухэтажные дома в ядре, облик мастерских выше земли, навесы и утварь, коморы, лавки, насады и амфоры у пристани, паром у Киевского спуска. Все 3D-модели построены процедурно в Blender по описаниям; сторонних моделей и иллюстраций книг нет.</p>
   <p><span class="tag hyp">гипотеза</span>Высота валов и размеры напольного рва, число башен, облик храмов (по аналогам Вщижа и Чернигова), деревянная церковь у Киевского спуска, сеть улиц, усадьбы и постройки, место торга и пристани, поля и лес. Дома отапливаются «по-чёрному», без труб.</p>
   <h3>Как ходить</h3>
   <ul><li>«Обзор»: тянуть мышью или пальцем, колесо или щипок для масштаба.</li>
@@ -197,6 +199,8 @@ function detailMat(color, kind, opts = {}) {
       thatch: "float n = fract(sin(dot(floor(vWP*vec3(9.0,4.0,9.0)),vec3(12.9,78.2,37.7)))*43758.5); diffuseColor.rgb *= 0.78 + 0.32*n;",
       plank: "float b = 0.5+0.5*sin((vWP.x+vWP.z)*6.2831*2.2); diffuseColor.rgb *= 0.82 + 0.18*b;",
       wattle: "float n = 0.5+0.5*sin(vWP.y*6.2831*9.0)*sin((vWP.x-vWP.z)*6.2831*3.0); diffuseColor.rgb *= 0.7 + 0.35*n;",
+      tes: "float b = 0.5+0.5*sin((vWP.x-vWP.z)*6.2831*3.0); float g = fract(sin(floor(vWP.y*4.0)*91.7)*43758.5); diffuseColor.rgb *= 0.8 + 0.16*b + 0.08*g;",
+      tyn: "float n = fract(sin(floor((vWP.x+vWP.z)*2.9)*12.9898)*43758.5); diffuseColor.rgb *= 0.72 + 0.4*n;",
     }[kind] || "";
     s.fragmentShader = s.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP;")
       .replace("#include <color_fragment>", "#include <color_fragment>\n" + f);
@@ -205,7 +209,8 @@ function detailMat(color, kind, opts = {}) {
 }
 const MATS = {
   log: detailMat(0x5d4128, "log"), log_old: detailMat(0x4a3c2c, "log"), thatch: detailMat(0x86714a, "thatch", { rough: 1 }),
-  plank: detailMat(0x6b5539, "plank"), wattle: detailMat(0x5f4c33, "wattle", { rough: 1 }), clay: new THREE.MeshStandardMaterial({ color: 0x7a5640, roughness: 0.95 }),
+  plank: detailMat(0x6b5539, "plank"), wattle: detailMat(0x5f4c33, "wattle", { rough: 1 }), clay: new THREE.MeshStandardMaterial({ color: 0x6e5a48, roughness: 0.95 }),
+  tes: detailMat(0x6f6352, "tes"), tyn: detailMat(0x58493a, "tyn", { rough: 1, extra: { side: THREE.DoubleSide } }),
   dark: new THREE.MeshStandardMaterial({ color: 0x0b0907, roughness: 1 }),
   water: new THREE.MeshStandardMaterial({ color: 0x3d6670, roughness: 0.04, metalness: 0.15, envMapIntensity: 1.6, transparent: true, opacity: 0.95 }),
   terrain: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }),
@@ -213,7 +218,7 @@ const MATS = {
 function pickMat(name) {
   name = (name || "").toLowerCase();
   if (name.startsWith("terrain")) return MATS.terrain;
-  for (const k of ["log_old", "log", "thatch", "plank", "wattle", "clay", "dark", "water"]) if (name.includes(k)) return MATS[k];
+  for (const k of ["log_old", "log", "thatch", "plank", "wattle", "clay", "dark", "water", "tes", "tyn"]) if (name.includes(k)) return MATS[k];
   return null;
 }
 
@@ -445,15 +450,24 @@ const SHOTS = [
   ["west_gate", "Речицкие ворота", "Западные ворота окольного города у вершины Гомеюка (место Речицкой брамы XVI–XVIII вв., у нынешнего облисполкома) и мост через ров."],
   ["street", "Главная улица", "Улица окольного города: срубы под соломой, плетни, в конце башни детинца.", "Пруд слева дорисован FLUX, в модели его нет."],
   ["detinets", "Ворота детинца", "Мост через ров (около 22 м) к надвратной башне на севере, к торгу; городни с башнями с напольной стороны, над обрывом частокол, за стеной княжий двор."],
-  ["landing", "Пристань", "Долблёнки у мостков в устье Киевского спуска, над бровкой стены и дома.", "FLUX принял деревья на склоне за хижины на сваях: для этого кадра точнее вариант Gemini."],
+  ["landing", "Перевоз", "Устье Киевского спуска: мостки, паром-плот и несколько долблёнок. По планам XVIII–XIX вв. здесь переправа; основная пристань теперь в устье Гомеюка.", "FLUX принял деревья на склоне за хижины на сваях: для этого кадра точнее вариант Gemini."],
+  ["podol", "Подол и пристань", "Устье Гомеюка: низкая терраса под мысом, мостки на сваях, насады с мачтами и долблёнки, коморы-склады, лавки, тюки, бочки и южные амфоры. Слева выше — кожевенники у ручья.", null, true],
+  ["haven_air", "Пристань с высоты", "Подол — полоса 20–50 м под мысом детинца от устья Гомеюка на север; в устье ручья — гавань с мостками вдоль берега.", null, true],
+  ["court", "Подворье с мастерскими", "Запад окольного города у Гомеюка: двухэтажные хоромы, оружейная мастерская («двор Фёдора»), ювелирно-литейная мастерская с тамбуром на запад, конюшня, клети, колодец. Подворье обнесено высоким частоколом.", null, true],
+  ["armory", "Оружейная мастерская", "Сруб на два подклета с сенями между ними, под тёсом. Перед мастерской навес с горном и мехами, наковальня, кадь для закалки, точило, пластинчатый доспех на стойке, стойка с копьями. Навес и утварь — гипотеза.", null, true],
+  ["smithy_yard", "Кузня во дворе", "Двор южного посада: открытый навес с горном и мехами, наковальня на чурбаке, кадь, куча угля; в углу двора сыродутный горн (домница) с кучами болотной руды и шлака.", null, true],
+  ["pottery", "Гончары", "Южная окраина южного посада у Ильинского спуска: два гончарных горна, навес с полками сохнущих горшков и кругом, глина, брак.", null, true],
+  ["yard", "Двор посада", "Рядовой двор: дом в углу у уличного частокола, на подклете, с сенями и крыльцом во двор, рубка «в обло» с выпусками углов, солома. По краям — клеть на столбах, хлев, навес, погреб; середина двора свободна, огород в глубине.", null, true],
 ];
 let gIdx = 0, gKind = "render";
 const gImg = document.getElementById("g-img"), gCap = document.getElementById("g-cap"), gTitle = document.getElementById("g-title"), thumbs = document.getElementById("thumbs");
 function gShow(i) { gIdx = i; const s = SHOTS[i];
+  const only = !!s[4]; for (const id of ["flux", "photo"]) document.getElementById("g-" + id).disabled = only;
+  if (only && gKind !== "render") { gKind = "render"; for (const id of ["flux", "photo", "render"]) document.getElementById("g-" + id).setAttribute("aria-pressed", id === "render"); }
   gImg.src = `gallery/${gKind}_${s[0]}.jpg`; gImg.alt = s[1]; gTitle.textContent = s[1];
   const NOTE = { flux: "Перерисовка FLUX 3 Klein — по ПРЕДЫДУЩЕЙ версии модели (до 07.11.2026: окольный город меньше, деревянная церковь). Фактуры и детали дорисованы.",
     photo: "Перерисовка Gemini — по ПРЕДЫДУЩЕЙ версии модели (до 07.11.2026). Модель свободнее меняет детали.",
-    render: "Рендер Blender текущей модели (07.11.2026): рельеф FABDEM/GLO-30/GEDTM30, план по книгам Макушникова и плану 1838 г., постройки по гипотезе." };
+    render: "Рендер Blender текущей модели (07.11.2026): рельеф FABDEM/GLO-30/GEDTM30, план по книгам Макушникова и плану 1838 г.; дома, дворы, мастерские и пристань — по данным раскопок и аналогам, расстановка — гипотеза." };
   gCap.innerHTML = `${s[2]}<small>${NOTE[gKind]}${gKind === "flux" && s[3] ? " " + s[3] : ""}</small>`;
   thumbs.querySelectorAll("button").forEach((b, k) => b.setAttribute("aria-pressed", k === i)); }
 SHOTS.forEach((s, i) => { const b = document.createElement("button"); b.setAttribute("aria-label", s[1]);
