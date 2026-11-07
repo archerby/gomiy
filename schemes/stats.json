@@ -1,6 +1,6 @@
 {
- "houses": 658,
- "seni": 173,
+ "houses": 625,
+ "seni": 166,
  "plots": 653,
  "plot_med": 343.14820000000066,
  "plot_q": [
@@ -14,8 +14,8 @@
  ],
  "roof": {
   "южный посад": {
-   "thatch": 400,
-   "tes": 22,
+   "thatch": 371,
+   "tes": 18,
    "tes2": 0
   },
   "северный посад": {
@@ -35,13 +35,13 @@
   }
  },
  "counts": {
-  "klet": 275,
-  "khlev": 115,
-  "povet": 95,
-  "pogreb": 110,
-  "smithy": 11,
+  "klet": 265,
+  "khlev": 108,
+  "povet": 92,
+  "pogreb": 105,
+  "smithy": 10,
   "bloomery": 9,
-  "pottery_kiln": 4,
+  "pottery_kiln": 1,
   "komora": 4,
   "lavka": 4,
   "tan_vat": 6
@@ -49,8 +49,8 @@
  "tyn_km": 11.43391376136816,
  "wattle_km": 25.498451095483517,
  "gates": 481,
- "boats": 18,
+ "boats": 17,
  "nasady": 4,
  "court_m2": 1096.2500000000005,
- "glb_raw_mb": 33.616116
+ "glb_raw_mb": 32.892192
 }
