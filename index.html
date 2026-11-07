@@ -153,6 +153,7 @@ renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.55;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = !isTouch; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;            // sun and shadow frustum are fixed: re-render shadows only when the sun moves
 app.appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
@@ -188,6 +189,7 @@ function setSun(elDeg) {
   scene.fog.color.setRGB(0.70 + 0.2 * warm, 0.74 + 0.05 * warm, 0.80 - 0.1 * warm);
   if (envRT) envRT.dispose();
   envRT = pmrem.fromScene(skyScene, 0.02); scene.environment = envRT.texture;
+  renderer.shadowMap.needsUpdate = true;
 }
 
 // ---------- materials with world-space procedural detail (logs, thatch, planks)
@@ -209,18 +211,100 @@ function detailMat(color, kind, opts = {}) {
   };
   return m;
 }
+// 07.11 photo pass: CC0 Poly Haven textures (tex/*.jpg, 512 px) as a DETAIL RATIO over the tuned palette colour,
+// triplanar in world space (the GLB has no UVs). swap: image turned 90 deg on walls (log trunks lie horizontally);
+// noTop: roofs take only the side projections, so straw fibres and tes boards always run down the slope.
+const TL = new THREE.TextureLoader();
+const TEX = {}; function tex(n) { if (!TEX[n]) { const t = TL.load(`tex/${n}.jpg`); t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; TEX[n] = t; } return TEX[n]; }
+const INV = { wood_trunk_wall: [[13.09, 20.41, 27.71], 18.56], thatch_roof_angled: [[10.58, 11.75, 13.96], 11.61],
+  weathered_planks: [[12.24, 17.27, 22.67], 16.14], bark_brown_02: [[8.06, 9.79, 16.21], 9.63],
+  sparse_grass: [[12.43, 20.64, 120.2], 19.10], dirt_floor: [[2.11, 3.83, 7.80], 3.37], coast_sand_01: [[4.42, 5.81, 9.23], 5.59] };
+const RATIO_GLSL = `vec3 dRatio(vec3 t, vec3 invC, float invL){ float l = dot(t, vec3(0.2126,0.7152,0.0722))*invL;
+  return min(mix(vec3(l), min(t*invC, vec3(2.5)), 0.35), vec3(2.5)); }`;
+function photoMat(color, name, tile, opts = {}) {
+  const m = new THREE.MeshStandardMaterial({ color, roughness: opts.rough ?? 0.92, metalness: 0, ...opts.extra });
+  const u = { tD: { value: tex(name) }, uInvC: { value: new THREE.Vector3(...INV[name][0]) }, uInvL: { value: INV[name][1] },
+              uTile: { value: tile }, uAmt: { value: opts.amt ?? 0.85 } };
+  m.onBeforeCompile = (s) => {
+    Object.assign(s.uniforms, u);
+    s.vertexShader = s.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP; varying vec3 vWN;")
+      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvWP = (modelMatrix * vec4(transformed,1.0)).xyz; vWN = normalize(mat3(modelMatrix) * objectNormal);");
+    const sx = opts.swap ? "vWP.yz" : "vWP.zy", sz = opts.swap ? "vWP.yx" : "vWP.xy";
+    s.fragmentShader = s.fragmentShader.replace("#include <common>", `#include <common>
+      varying vec3 vWP; varying vec3 vWN; uniform sampler2D tD; uniform vec3 uInvC; uniform float uInvL; uniform float uTile; uniform float uAmt;
+      ${RATIO_GLSL}`)
+      .replace("#include <color_fragment>", `#include <color_fragment>
+      vec3 w = abs(vWN); w = w*w; w = w*w; ${opts.noTop ? "w.y = 0.0;" : ""} w /= (w.x + w.y + w.z + 1e-4);
+      vec3 tc = texture2D(tD, ${sx} / uTile).rgb * w.x + texture2D(tD, ${sz} / uTile).rgb * w.z ${opts.noTop ? "" : "+ texture2D(tD, vWP.xz / uTile).rgb * w.y"};
+      diffuseColor.rgb *= mix(vec3(1.0), dRatio(tc, uInvC, uInvL), uAmt);`);
+  };
+  return m;
+}
+// ground: the palette is in the vertex colours; grass / trampled earth / sand detail is chosen from that colour
+function groundMat() {
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
+  const u = { tG: { value: tex("sparse_grass") }, tE: { value: tex("dirt_floor") }, tS: { value: tex("coast_sand_01") } };
+  m.onBeforeCompile = (s) => {
+    Object.assign(s.uniforms, u);
+    s.vertexShader = s.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP;")
+      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvWP = (modelMatrix * vec4(transformed,1.0)).xyz;");
+    s.fragmentShader = s.fragmentShader.replace("#include <common>", `#include <common>
+      varying vec3 vWP; uniform sampler2D tG; uniform sampler2D tE; uniform sampler2D tS; ${RATIO_GLSL}
+      vec3 two(sampler2D t, vec2 p, float k){ return 0.5*(texture2D(t, p/k).rgb + texture2D(t, p/(k*3.7) + 0.37).rgb); }`)
+      .replace("#include <color_fragment>", `
+      vec3 pc = pow(max(vColor.rgb, vec3(0.0)), vec3(1.0/2.2));            // palette colour back in sRGB
+      float lum = (pc.r + pc.g + pc.b) / 3.0;
+      float wG = smoothstep(-0.05, 0.02, pc.g - pc.r);
+      float wS = (1.0 - wG) * smoothstep(0.58, 0.66, pc.b / max(pc.r, 0.01)) * smoothstep(0.50, 0.58, lum);
+      float wE = max(1.0 - wG - wS, 0.0);
+      vec2 p = vWP.xz;
+      vec3 r = dRatio(two(tG, p, 2.4), vec3(12.43, 20.64, 120.2), 19.10) * wG
+             + dRatio(two(tE, p, 2.6), vec3(2.11, 3.83, 7.80), 3.37) * wE
+             + dRatio(two(tS, p, 6.0), vec3(4.42, 5.81, 9.23), 5.59) * wS;
+      float fade = smoothstep(900.0, 150.0, length(vWP - cameraPosition));
+      #include <color_fragment>
+      diffuseColor.rgb *= mix(vec3(1.0), r, 0.8 * fade);`);
+  };
+  return m;
+}
+// river: dark water, animated wind ripples (sum of travelling waves), fading out with distance against aliasing
+const waterU = { uTime: { value: 0 } };
+function waterMat() {
+  const m = new THREE.MeshStandardMaterial({ color: 0x2c4a50, roughness: 0.06, metalness: 0.1, envMapIntensity: 1.5, transparent: true, opacity: 0.96 });
+  m.onBeforeCompile = (s) => {
+    Object.assign(s.uniforms, waterU);
+    s.vertexShader = s.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP;")
+      .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvWP = (modelMatrix * vec4(transformed,1.0)).xyz;");
+    s.fragmentShader = s.fragmentShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP; uniform float uTime;")
+      .replace("#include <normal_fragment_maps>", `#include <normal_fragment_maps>
+      { vec2 p = vWP.xz; vec2 g = vec2(0.0);
+        for (int i = 0; i < 7; i++) { float fi = float(i); vec2 dir = vec2(cos(fi * 2.399 + 0.3), sin(fi * 2.399 + 0.3));
+          float fr = 0.09 * pow(1.83, fi); float ph = dot(p, dir) * fr + uTime * (0.5 + 0.32 * fi);
+          g += dir * cos(ph) * 0.09 / (1.0 + 0.55 * fi); }
+        g *= smoothstep(2200.0, 120.0, length(vWP - cameraPosition));
+        normal = normalize((viewMatrix * vec4(-g.x, 1.0, -g.y, 0.0)).xyz); }`);
+  };
+  return m;
+}
 const MATS = {
-  log: detailMat(0x5d4128, "log"), log_old: detailMat(0x4a3c2c, "log"), thatch: detailMat(0x86714a, "thatch", { rough: 1 }),
-  plank: detailMat(0x6b5539, "plank"), wattle: detailMat(0x5f4c33, "wattle", { rough: 1 }), clay: new THREE.MeshStandardMaterial({ color: 0x6e5a48, roughness: 0.95 }),
-  tes: detailMat(0x6f6352, "tes"), tyn: detailMat(0x58493a, "tyn", { rough: 1, extra: { side: THREE.DoubleSide } }),
+  log: photoMat(0x6a4a2e, "wood_trunk_wall", 2.2, { swap: true }), log_old: photoMat(0x55452f, "wood_trunk_wall", 2.0, { swap: true }),
+  thatch: photoMat(0x8a754c, "thatch_roof_angled", 1.5, { rough: 1, noTop: true, amt: 0.9 }),
+  plank: photoMat(0x6b5539, "weathered_planks", 2.2), wattle: detailMat(0x5f4c33, "wattle", { rough: 1 }), clay: new THREE.MeshStandardMaterial({ color: 0x6e5a48, roughness: 0.95 }),
+  tes: photoMat(0x6f6352, "weathered_planks", 2.2, { noTop: true }), tyn: photoMat(0x58493a, "bark_brown_02", 1.0, { rough: 1, extra: { side: THREE.DoubleSide } }),
   dark: new THREE.MeshStandardMaterial({ color: 0x0b0907, roughness: 1 }),
-  water: new THREE.MeshStandardMaterial({ color: 0x3d6670, roughness: 0.04, metalness: 0.15, envMapIntensity: 1.6, transparent: true, opacity: 0.95 }),
-  terrain: new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 }),
+  gorbyl: photoMat(0x6b5d48, "weathered_planks", 2.8, { amt: 0.75 }),
+  water: waterMat(),
+  terrain: groundMat(),
 };
+// procedural Blender materials are exported without colour (white): their base colours from s04, sRGB
+const MATCOL = { amphora: 0xc28061, bone: 0xdbd1b3, charcoal: 0x0f0f0f, hide: 0x9e7a52, iron: 0x292624, lead: 0x858a8c, linen: 0xbdb091,
+  net: 0x38332b, ore: 0x734221, plinfa: 0xccad7a, pot: 0x705c4d, rawclay: 0x9e8f70, slag: 0x332e2e, sod: 0x4d5c29, bark: 0x40301f };
+for (const [k, c] of Object.entries(MATCOL)) MATS[k] = new THREE.MeshStandardMaterial({ color: c, roughness: k === "lead" ? 0.55 : 0.9, metalness: k === "lead" || k === "iron" ? 0.3 : 0 });
 function pickMat(name) {
   name = (name || "").toLowerCase();
   if (name.startsWith("terrain")) return MATS.terrain;
-  for (const k of ["log_old", "log", "thatch", "plank", "wattle", "clay", "dark", "water", "tes", "tyn"]) if (name.includes(k)) return MATS[k];
+  for (const k of ["log_old", "log", "thatch", "plank", "wattle", "rawclay", "clay", "dark", "water", "tes", "tyn", "gorbyl", ...Object.keys(MATCOL)]) if (name.includes(k)) return MATS[k];
   return null;
 }
 
@@ -237,7 +321,12 @@ function groundZ(x, y) {
 
 // ---------- instanced vegetation, people, animals
 function colored(geo, hex) { const g = geo.toNonIndexed(); const c = new THREE.Color(hex); const n = g.attributes.position.count;
-  const arr = new Float32Array(n * 3); for (let i = 0; i < n; i++) { arr[i*3] = c.r; arr[i*3+1] = c.g; arr[i*3+2] = c.b; }
+  const P = g.attributes.position; g.computeBoundingBox(); const y0 = g.boundingBox.min.y, y1 = g.boundingBox.max.y;
+  const leafy = c.g > c.r * 1.05 && c.g > c.b;                       // crowns: darker underside and core, lumpy outline
+  const arr = new Float32Array(n * 3); for (let i = 0; i < n; i++) {
+    let k = 1; if (leafy) { const h = (P.getY(i) - y0) / Math.max(y1 - y0, 1e-3); const r = Math.sin(P.getX(i) * 3.1 + P.getZ(i) * 2.3 + P.getY(i) * 1.7);
+      k = (0.78 + 0.32 * h) * (0.92 + 0.12 * r); }
+    arr[i*3] = c.r * k; arr[i*3+1] = c.g * k; arr[i*3+2] = c.b * k; }
   g.setAttribute("color", new THREE.BufferAttribute(arr, 3)); g.deleteAttribute("uv"); return g; }
 const at = (g, x, y, z) => { g.translate(x, y, z); return g; };
 const ell = (rx, ry, rz, seg = 7) => { const g = new THREE.IcosahedronGeometry(1, 1); g.scale(rx, ry, rz); return g; };
@@ -254,6 +343,8 @@ const TREE_GEO = [
   mergeGeometries([colored(at(ell(1.6, 1.0, 1.4), 0, 0.9, 0), 0x2f4a1c), colored(at(ell(1.0, 0.7, 1.0), 0.9, 0.7, 0.5), 0x35521f)]),
 ];
 const vegMat = new THREE.MeshLambertMaterial({ vertexColors: true });
+// crowns against the sun read black: a little self-light stands in for light passing through the leaves
+const treeMat = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0x0c1508 });
 const CLOTH = [0xcdc2a8, 0x8c857a, 0x6b4d31, 0x8c2a1f, 0x38507a, 0x76703c];
 const personGeo = mergeGeometries([colored(at(new THREE.CylinderGeometry(0.2, 0.28, 1.0, 8), 0, 0.95, 0), 0xffffff),
   colored(at(new THREE.CylinderGeometry(0.07, 0.08, 0.5, 5), -0.09, 0.25, 0), 0x4a4034), colored(at(new THREE.CylinderGeometry(0.07, 0.08, 0.5, 5), 0.09, 0.25, 0), 0x4a4034)]);
@@ -401,8 +492,11 @@ root.traverse((o) => { if (o.isMesh) {
 stat.textContent = "Расставляю деревья, людей и дымы…"; prog.style.width = "90%";
 // trees
 for (let k = 0; k < world.treeKinds.length; k++) {
-  const list = world.trees.filter(t => t[3] === k); const im = new THREE.InstancedMesh(TREE_GEO[k], vegMat, list.length);
-  list.forEach((t, i) => { dummy.position.copy(V(t[0], t[1], t[2])); dummy.rotation.set(0, (t[0] * 13.7 + t[1] * 7.1) % 6.28, 0); dummy.scale.setScalar(t[4]); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix); });
+  const list = world.trees.filter(t => t[3] === k); const im = new THREE.InstancedMesh(TREE_GEO[k], treeMat, list.length);
+  const tc = new THREE.Color();
+  list.forEach((t, i) => { dummy.position.copy(V(t[0], t[1], t[2])); dummy.rotation.set(0, (t[0] * 13.7 + t[1] * 7.1) % 6.28, 0); dummy.scale.setScalar(t[4]); dummy.updateMatrix(); im.setMatrixAt(i, dummy.matrix);
+    const h = Math.abs(Math.sin(t[0] * 12.9898 + t[1] * 78.233) * 43758.5) % 1;           // per-tree tint: some yellower, some darker
+    tc.setRGB(0.86 + 0.26 * h, 0.88 + 0.2 * ((h * 7.3) % 1), 0.8 + 0.2 * ((h * 3.1) % 1)); im.setColorAt(i, tc); });
   im.castShadow = !isTouch; im.receiveShadow = false; scene.add(im);
 }
 // static people
@@ -422,7 +516,7 @@ paths = world.paths; cum = paths.map(p => { const c = [0]; for (let i = 1; i < p
 walkers = world.walkers.map(w => ({ path: w[0], s: w[1], v: w[2], cloth: w[3], h: w[4] }));
 walkerMesh = new THREE.InstancedMesh(personGeo, vegMat, walkers.length); walkerHeads = new THREE.InstancedMesh(headGeo, vegMat, walkers.length);
 walkers.forEach((w, i) => walkerMesh.setColorAt(i, new THREE.Color(CLOTH[w.cloth])));
-walkerMesh.castShadow = walkerHeads.castShadow = !isTouch; scene.add(walkerMesh, walkerHeads);
+scene.add(walkerMesh, walkerHeads);
 function pathPoint(pi, s) { const p = paths[pi], c = cum[pi], L = c[c.length - 1]; s = ((s % (2*L)) + 2*L) % (2*L); let dir = 1; if (s > L) { s = 2*L - s; dir = -1; }
   let i = 1; while (i < c.length - 1 && c[i] < s) i++; const t = (s - c[i-1]) / Math.max(c[i] - c[i-1], 1e-6);
   return { x: p[i-1][0] + (p[i][0]-p[i-1][0]) * t, y: p[i-1][1] + (p[i][1]-p[i-1][1]) * t, z: p[i-1][2] + (p[i][2]-p[i-1][2]) * t,
@@ -488,13 +582,20 @@ setSun(+sunIn.value); hint();
 prog.style.width = "100%"; document.getElementById("loading").remove();
 
 const clock = new THREE.Clock();
+// adaptive resolution: lower the pixel ratio while frames are slow, raise it back when there is headroom
+const DPR_MAX = Math.min(devicePixelRatio, isTouch ? 1.25 : 1.6), DPR_MIN = 0.6; let dpr = DPR_MAX, acc = 0, nfr = 0;
+function adaptRes(dt) { acc += dt; nfr++; if (acc < 1.0) return; const fps = nfr / acc; acc = 0; nfr = 0;
+  let d = dpr; if (fps < 40) d = Math.max(DPR_MIN, dpr * 0.85); else if (fps > 57) d = Math.min(DPR_MAX, dpr * 1.08);
+  if (Math.abs(d - dpr) > 0.02) { dpr = d; renderer.setPixelRatio(dpr); renderer.setSize(innerWidth, innerHeight); } }
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime;
   if (fly) { fly.t = Math.min(fly.t + dt / 2.2, 1); const e = fly.t < 0.5 ? 2*fly.t*fly.t : 1 - Math.pow(-2*fly.t + 2, 2) / 2;
     camera.position.lerpVectors(fly.p0, fly.p1, e); controls.target.lerpVectors(fly.q0, fly.q1, e); if (fly.t >= 1) fly = null; }
   if (mode === "walk") updateWalk(dt); else controls.update();
+  if (!still) waterU.uTime.value = t;
   updateWalkers(still ? 0 : dt, t); updateSmoke(still ? 0 : dt, t); updateLabels();
   renderer.render(scene, camera);
+  adaptRes(dt);
 });
 addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
   if (smoke) smoke.mat.uniforms.uScale.value = innerHeight / 2; });
