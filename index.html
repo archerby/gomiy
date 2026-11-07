@@ -38,6 +38,8 @@ button { font: inherit; font-size: 13px; color: var(--fg); background: transpare
 button:hover { border-color: var(--accent); }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+a.navlink { font-size: 13px; color: var(--fg); text-decoration: none; border: 1px solid var(--accent); border-radius: 999px; padding: 6px 12px; }
+a.navlink:hover { background: var(--accent); color: var(--accent-ink); }
 input[type=range] { accent-color: var(--accent); width: 130px; }
 .sep { width: 1px; align-self: stretch; background: var(--line); }
 #hint { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); padding: 10px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; max-width: 300px; }
@@ -96,7 +98,7 @@ input[type=range] { accent-color: var(--accent); width: 130px; }
   <div class="group" id="views"><span class="lbl">Виды</span></div>
   <div class="sep"></div>
   <div class="group"><label class="lbl" for="sun">Солнце</label><input id="sun" type="range" min="2" max="60" value="17" step="1"></div>
-  <div class="group"><button id="b-labels" aria-pressed="true">Подписи</button><button id="b-info" aria-pressed="false">Источники</button><button id="b-gal" aria-pressed="false">Кадры</button></div>
+  <div class="group"><button id="b-labels" aria-pressed="true">Подписи</button><button id="b-info" aria-pressed="false">Источники</button><button id="b-gal" aria-pressed="false">Кадры</button><a class="navlink" href="schemes.html">Схемы и расчёты</a></div>
 </div>
 <div id="touch"><span></span><button data-k="KeyW" aria-label="Вперёд">▲</button><span></span>
   <button data-k="KeyA" aria-label="Влево">◀</button><button data-k="KeyS" aria-label="Назад">▼</button><button data-k="KeyD" aria-label="Вправо">▶</button></div>
