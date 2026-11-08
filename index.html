@@ -105,7 +105,7 @@ select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <select id="ov"><option value="">нет</option><option value="esri">Спутник сегодня</option><option value="corona1964">Спутник 1964</option>
       <option value="plan1913">План 1913 г.</option><option value="plan1838">План 1838 г.</option><option value="plan_xviii">План XVIII в.</option></select>
     <input id="ov-a" type="range" min="0" max="100" value="100" step="1" aria-label="Прозрачность подложки">
-    <button id="b-bare" aria-pressed="false">Только рельеф</button></div>
+    <button id="b-bare" aria-pressed="true">Постройки</button><button id="b-out" aria-pressed="false">Контуры Гомия</button></div>
   <div class="sep"></div>
   <div class="group"><button id="b-labels" aria-pressed="true">Подписи</button><button id="b-info" aria-pressed="false">Источники</button><button id="b-gal" aria-pressed="false">Кадры</button><a class="navlink" href="schemes.html">Схемы и расчёты</a></div>
 </div>
@@ -120,7 +120,7 @@ select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   <p><span class="tag doc">раскопки</span>Дома и дворы по монографии Макушникова (2009, с. 70–75): наземные срубы 18–36 м² на подклетах, рубка «в обло» с выпусками углов, дворы 240–360 м² с постройками по краям и пустой серединой, ограды на кольях, частокол вдоль улицы посада. Мастерские по находкам: оружейная («двор Фёдора», два подклета) и ювелирно-литейная (7,8 × 4,2 м, тамбур с запада) на западе окольного города, сгорели около 1239 г. (с. 102, 110, 112); шлак и домницы во дворах (с. 99); гончары на южном посаде (с. 103); костерез (с. 98). Подол и пристань в устье Гомеюка: щепа и кожа в мокром слое 1986 г., керамика на отмели (с. 72–73).</p>
   <p><span class="tag hyp">гипотеза</span>Крыши (солома на посадах, тёс на 30–50 % домов ядра — по аналогу Вщижа), двухэтажные дома в ядре, облик мастерских выше земли, навесы и утварь, коморы, лавки, насады и амфоры у пристани, паром у Киевского спуска. Постройки и утварь построены процедурно в Blender по описаниям; иллюстрации книг не использованы. Фото-текстуры дерева, соломы и земли, а в рендерах трава, камни, папоротники, крапива и кусты — свободные (CC0) материалы и модели <a href="https://polyhaven.com/">Poly Haven</a>.</p>
   <p><span class="tag hyp">гипотеза</span>Высота валов и размеры напольного рва, число башен, облик храмов (по аналогам Вщижа и Чернигова), деревянная церковь у Киевского спуска, сеть улиц, усадьбы и постройки, место торга и пристани, поля и лес. Дома отапливаются «по-чёрному», без труб.</p>
-  <p><span class="tag doc">подложки</span>Модель привязана к географическим координатам (WGS 84), поэтому на её рельеф можно положить современный спутниковый снимок (Esri World Imagery, грузится с серверов Esri), снимок Corona 1964 г. и привязанные старые планы: 1913 г., окрестностей 1838 г. и местечка Гомля XVIII в. Кнопка «Только рельеф» убирает постройки. Точность привязки старых планов — десятки метров.</p>
+  <p><span class="tag doc">подложки</span>Модель привязана к географическим координатам (WGS 84), поэтому на её рельеф можно положить современный спутниковый снимок (Esri World Imagery, грузится с серверов Esri), снимок Corona 1964 г. и привязанные старые планы: 1913 г., окрестностей 1838 г. и местечка Гомля XVIII в. Кнопка «Постройки» убирает и возвращает модель, «Контуры Гомия» рисует на земле границы детинца, окольного города, посадов и подола, рвы и ворота — так видно, какое место город занимал на снимке или плане. Точность привязки старых планов — десятки метров.</p>
   <h3>Как ходить</h3>
   <ul><li>«Обзор»: тянуть мышью или пальцем, колесо или щипок для масштаба.</li>
   <li>«Прогулка»: WASD или стрелки, Shift для бега, тянуть мышью для поворота головы. На телефоне кнопки справа.</li></ul>
@@ -258,10 +258,12 @@ function photoMat(color, name, tile, opts = {}) {
 // (2nd-order series round its latitude: exact to < 0.1 m over 4 km; done as differences to keep float32 precision).
 const OVU = { uOvA: { value: 0 }, uOvE: { value: 0.55 },
   uTA: { value: null }, uRA: { value: new THREE.Vector4() }, uKA: { value: new THREE.Vector3() },
-  uTB: { value: null }, uRB: { value: new THREE.Vector4() }, uKB: { value: new THREE.Vector3() }, uBOn: { value: 0 } };
+  uTB: { value: null }, uRB: { value: new THREE.Vector4() }, uKB: { value: new THREE.Vector3() }, uBOn: { value: 0 },
+  uTC: { value: null }, uRC: { value: new THREE.Vector4() }, uCOn: { value: 0 } };
 const OV_GLSL = `uniform float uOvA; uniform float uOvE; uniform float uBOn;
   uniform sampler2D uTA; uniform vec4 uRA; uniform vec3 uKA; uniform sampler2D uTB; uniform vec4 uRB; uniform vec3 uKB;
-  vec3 gOv = vec3(0.0);
+  uniform sampler2D uTC; uniform vec4 uRC; uniform float uCOn;
+  vec3 gOv = vec3(0.0); vec3 gC = vec3(0.0);
   vec2 ovUV(vec2 sp, vec4 R, vec3 K) { float u = (sp.x - R.x) * R.z;
     if (K.z < 0.5) return vec2(u, (sp.y - R.y) * R.w);
     float dphi = radians((sp.y - R.y) / 110540.0); return vec2(u, 1.0 + (K.x * dphi + 0.5 * K.x * K.y * dphi * dphi) * R.w); }
@@ -270,7 +272,9 @@ const OV_FRAG = `{ vec2 sp = vec2(vWP.x + ${OX}.0, ${OY}.0 - vWP.z);
     vec2 ua = ovUV(sp, uRA, uKA); vec4 ca = texture2D(uTA, ua); ca.a *= ovIn(ua);
     vec2 ub = ovUV(sp, uRB, uKB); vec4 cb = texture2D(uTB, ub); cb.a *= ovIn(ub) * uBOn;
     vec4 c = mix(ca, cb, cb.a); float w = uOvA * c.a;
-    gOv = c.rgb * w; diffuseColor.rgb = mix(diffuseColor.rgb, c.rgb * 0.75, w); }`;
+    gOv = c.rgb * w; diffuseColor.rgb = mix(diffuseColor.rgb, c.rgb * 0.75, w);
+    vec2 uc = (sp - uRC.xy) * uRC.zw; vec4 cc = texture2D(uTC, uc); cc.a *= ovIn(uc) * uCOn;
+    diffuseColor.rgb = mix(diffuseColor.rgb, cc.rgb * 0.6, cc.a); gOv *= 1.0 - cc.a; gC = cc.rgb * cc.a; }`;
 // ground: the palette is in the vertex colours; grass / trampled earth / sand detail is chosen from that colour
 function groundMat() {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
@@ -296,7 +300,7 @@ function groundMat() {
       #include <color_fragment>
       diffuseColor.rgb *= mix(vec3(1.0), r, 0.8 * fade);
       ${OV_FRAG}`)
-      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += gOv * uOvE;");
+      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += gOv * uOvE + gC * 0.7;");
   };
   return m;
 }
@@ -647,7 +651,7 @@ function overlay(id) {
 }
 let bare = false;
 const BARE = []; scene.traverse((o) => { if ((o.isMesh || o.isPoints) && o !== sky && !(o.name || "").toLowerCase().includes("terrain")) BARE.push(o); });
-function setBare(on) { bare = on; for (const o of BARE) o.visible = !on; document.getElementById("b-bare").setAttribute("aria-pressed", on); renderer.shadowMap.needsUpdate = true; }
+function setBare(on) { bare = on; for (const o of BARE) o.visible = !on; document.getElementById("b-bare").setAttribute("aria-pressed", !on); renderer.shadowMap.needsUpdate = true; }
 function setOverlay(id) {
   if (!id) { OVU.uOvA.value = 0; attrib.hidden = true; return; }
   const o = overlay(id); if (!o.A) return;
@@ -658,7 +662,28 @@ function setOverlay(id) {
 function placeAttrib() { attrib.style.bottom = `calc(${document.getElementById("bar").offsetHeight + 20}px + env(safe-area-inset-bottom, 0px))`;
   attrib.style.maxWidth = "min(640px, calc(100vw - 32px))"; }
 addEventListener("resize", placeAttrib);
-ovSel.addEventListener("change", () => { const id = ovSel.value; if (id && !OVU.uOvA.value && !bare) setBare(true); if (!id && bare) setBare(false); setOverlay(id); });
+// outlines of the reconstructed town (s10_overlays.py -> overlays/outlines.json), drawn into a canvas draped on the ground
+let outTex = null;
+async function buildOutlines() {
+  const J = await fetch("overlays/outlines.json").then((r) => r.json());
+  const k = 1.25, x0 = B[0], y0 = B[1], x1 = B[2], y1 = B[3];
+  const cv = document.createElement("canvas"); cv.width = Math.round((x1 - x0) * k); cv.height = Math.round((y1 - y0) * k);
+  const g = cv.getContext("2d"), P = (p) => [(p[0] - x0) * k, (y1 - p[1]) * k];
+  const ST = { posad: ["rgba(224,164,88,0.16)", "#e0a458", 4, [14, 10]], okolny: ["rgba(245,214,140,0.22)", "#f5d68c", 5, []],
+    detinets: ["rgba(240,110,70,0.32)", "#ff7a50", 6, []], podol: ["rgba(110,170,220,0.22)", "#8cc4f0", 4, [10, 8]], ditch: [null, "#c0392b", 7, []] };
+  const path = (pts, close) => { g.beginPath(); pts.forEach((p, i) => { const [a, b] = P(p); i ? g.lineTo(a, b) : g.moveTo(a, b); }); if (close) g.closePath(); };
+  for (const o of J.outlines) { const [fill, stroke, lw, dash] = ST[o.kind]; g.setLineDash(dash); g.lineJoin = "round"; g.lineWidth = lw; g.strokeStyle = stroke;
+    if (o.poly) { path(o.poly, true); if (fill) { g.fillStyle = fill; g.fill(); } g.stroke(); } else { path(o.line, false); g.stroke(); } }
+  g.setLineDash([]); g.textAlign = "center"; g.textBaseline = "middle"; g.font = "600 30px 'Golos Text', Arial, sans-serif"; g.lineWidth = 6;
+  for (const o of J.outlines) { if (!o.name || !o.poly) continue; let sx = 0, sy = 0; for (const p of o.poly) { sx += p[0]; sy += p[1]; }
+    const [a, b] = P([sx / o.poly.length, sy / o.poly.length]); g.strokeStyle = "rgba(20,16,10,0.85)"; g.strokeText(o.name, a, b); g.fillStyle = "#fff6e4"; g.fillText(o.name, a, b); }
+  for (const p of Object.values(J.gates)) { const [a, b] = P(p); g.beginPath(); g.arc(a, b, 9, 0, 6.2832); g.fillStyle = "#fff6e4"; g.fill(); g.lineWidth = 3; g.strokeStyle = "#1a1208"; g.stroke(); }
+  outTex = new THREE.CanvasTexture(cv); outTex.colorSpace = THREE.SRGBColorSpace; outTex.anisotropy = 8;
+  OVU.uTC.value = outTex; OVU.uRC.value.set(x0, y0, 1 / (x1 - x0), 1 / (y1 - y0));
+}
+async function setOutlines(on) { if (on && !outTex) await buildOutlines(); OVU.uCOn.value = on ? 1 : 0; document.getElementById("b-out").setAttribute("aria-pressed", on); }
+document.getElementById("b-out").addEventListener("click", () => setOutlines(!OVU.uCOn.value));
+ovSel.addEventListener("change", () => { const id = ovSel.value; if (id && !OVU.uOvA.value && !bare) { setBare(true); setOutlines(true); } if (!id && bare) setBare(false); setOverlay(id); });
 ovA.addEventListener("input", () => { if (ovSel.value) OVU.uOvA.value = ovA.value / 100; });
 document.getElementById("b-bare").addEventListener("click", () => setBare(!bare));
 
