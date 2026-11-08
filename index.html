@@ -41,6 +41,9 @@ button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink
 a.navlink { font-size: 13px; color: var(--fg); text-decoration: none; border: 1px solid var(--accent); border-radius: 999px; padding: 6px 12px; }
 a.navlink:hover { background: var(--accent); color: var(--accent-ink); }
 input[type=range] { accent-color: var(--accent); width: 130px; }
+select { font: inherit; font-size: 13px; color: var(--fg); background: var(--panel-solid); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; cursor: pointer; max-width: 210px; }
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#attrib { position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(74px + env(safe-area-inset-bottom, 0px)); padding: 4px 10px; font-size: 11.5px; color: var(--muted); }
 .sep { width: 1px; align-self: stretch; background: var(--line); }
 #hint { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); padding: 10px 14px; color: var(--muted); font-size: 12.5px; line-height: 1.5; max-width: 300px; }
 #hint b { color: var(--fg); font-weight: 600; }
@@ -98,8 +101,15 @@ input[type=range] { accent-color: var(--accent); width: 130px; }
   <div class="group" id="views"><span class="lbl">Виды</span></div>
   <div class="sep"></div>
   <div class="group"><label class="lbl" for="sun">Солнце</label><input id="sun" type="range" min="2" max="60" value="17" step="1"></div>
+  <div class="group"><label class="lbl" for="ov">Подложка</label>
+    <select id="ov"><option value="">нет</option><option value="esri">Спутник сегодня</option><option value="corona1964">Спутник 1964</option>
+      <option value="plan1913">План 1913 г.</option><option value="plan1838">План 1838 г.</option><option value="plan_xviii">План XVIII в.</option></select>
+    <input id="ov-a" type="range" min="0" max="100" value="100" step="1" aria-label="Прозрачность подложки">
+    <button id="b-bare" aria-pressed="false">Только рельеф</button></div>
+  <div class="sep"></div>
   <div class="group"><button id="b-labels" aria-pressed="true">Подписи</button><button id="b-info" aria-pressed="false">Источники</button><button id="b-gal" aria-pressed="false">Кадры</button><a class="navlink" href="schemes.html">Схемы и расчёты</a></div>
 </div>
+<div id="attrib" class="panel" hidden></div>
 <div id="touch"><span></span><button data-k="KeyW" aria-label="Вперёд">▲</button><span></span>
   <button data-k="KeyA" aria-label="Влево">◀</button><button data-k="KeyS" aria-label="Назад">▼</button><button data-k="KeyD" aria-label="Вправо">▶</button></div>
 <div id="info" class="panel" hidden>
@@ -110,6 +120,7 @@ input[type=range] { accent-color: var(--accent); width: 130px; }
   <p><span class="tag doc">раскопки</span>Дома и дворы по монографии Макушникова (2009, с. 70–75): наземные срубы 18–36 м² на подклетах, рубка «в обло» с выпусками углов, дворы 240–360 м² с постройками по краям и пустой серединой, ограды на кольях, частокол вдоль улицы посада. Мастерские по находкам: оружейная («двор Фёдора», два подклета) и ювелирно-литейная (7,8 × 4,2 м, тамбур с запада) на западе окольного города, сгорели около 1239 г. (с. 102, 110, 112); шлак и домницы во дворах (с. 99); гончары на южном посаде (с. 103); костерез (с. 98). Подол и пристань в устье Гомеюка: щепа и кожа в мокром слое 1986 г., керамика на отмели (с. 72–73).</p>
   <p><span class="tag hyp">гипотеза</span>Крыши (солома на посадах, тёс на 30–50 % домов ядра — по аналогу Вщижа), двухэтажные дома в ядре, облик мастерских выше земли, навесы и утварь, коморы, лавки, насады и амфоры у пристани, паром у Киевского спуска. Постройки и утварь построены процедурно в Blender по описаниям; иллюстрации книг не использованы. Фото-текстуры дерева, соломы и земли, а в рендерах трава, камни, папоротники, крапива и кусты — свободные (CC0) материалы и модели <a href="https://polyhaven.com/">Poly Haven</a>.</p>
   <p><span class="tag hyp">гипотеза</span>Высота валов и размеры напольного рва, число башен, облик храмов (по аналогам Вщижа и Чернигова), деревянная церковь у Киевского спуска, сеть улиц, усадьбы и постройки, место торга и пристани, поля и лес. Дома отапливаются «по-чёрному», без труб.</p>
+  <p><span class="tag doc">подложки</span>Модель привязана к географическим координатам (WGS 84), поэтому на её рельеф можно положить современный спутниковый снимок (Esri World Imagery, грузится с серверов Esri), снимок Corona 1964 г. и привязанные старые планы: 1913 г., окрестностей 1838 г. и местечка Гомля XVIII в. Кнопка «Только рельеф» убирает постройки. Точность привязки старых планов — десятки метров.</p>
   <h3>Как ходить</h3>
   <ul><li>«Обзор»: тянуть мышью или пальцем, колесо или щипок для масштаба.</li>
   <li>«Прогулка»: WASD или стрелки, Shift для бега, тянуть мышью для поворота головы. На телефоне кнопки справа.</li></ul>
@@ -241,16 +252,35 @@ function photoMat(color, name, tile, opts = {}) {
   };
   return m;
 }
+// georeferenced overlay on the ground (s10_overlays.py + live Esri tiles). Two slots: A = whole frame, B = sharper core.
+// Each slot maps scene metres to UV: mode 0 linear rect (u = (x - xR) * sx, v = (y - yR) * sy);
+// mode 1 Web Mercator tile canvas: u linear in lon, v = 1 + dpsi * sy, dpsi = isometric-latitude offset from the canvas top edge
+// (2nd-order series round its latitude: exact to < 0.1 m over 4 km; done as differences to keep float32 precision).
+const OVU = { uOvA: { value: 0 }, uOvE: { value: 0.55 },
+  uTA: { value: null }, uRA: { value: new THREE.Vector4() }, uKA: { value: new THREE.Vector3() },
+  uTB: { value: null }, uRB: { value: new THREE.Vector4() }, uKB: { value: new THREE.Vector3() }, uBOn: { value: 0 } };
+const OV_GLSL = `uniform float uOvA; uniform float uOvE; uniform float uBOn;
+  uniform sampler2D uTA; uniform vec4 uRA; uniform vec3 uKA; uniform sampler2D uTB; uniform vec4 uRB; uniform vec3 uKB;
+  vec3 gOv = vec3(0.0);
+  vec2 ovUV(vec2 sp, vec4 R, vec3 K) { float u = (sp.x - R.x) * R.z;
+    if (K.z < 0.5) return vec2(u, (sp.y - R.y) * R.w);
+    float dphi = radians((sp.y - R.y) / 110540.0); return vec2(u, 1.0 + (K.x * dphi + 0.5 * K.x * K.y * dphi * dphi) * R.w); }
+  float ovIn(vec2 uv) { return step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0); }`;
+const OV_FRAG = `{ vec2 sp = vec2(vWP.x + ${OX}.0, ${OY}.0 - vWP.z);
+    vec2 ua = ovUV(sp, uRA, uKA); vec4 ca = texture2D(uTA, ua); ca.a *= ovIn(ua);
+    vec2 ub = ovUV(sp, uRB, uKB); vec4 cb = texture2D(uTB, ub); cb.a *= ovIn(ub) * uBOn;
+    vec4 c = mix(ca, cb, cb.a); float w = uOvA * c.a;
+    gOv = c.rgb * w; diffuseColor.rgb = mix(diffuseColor.rgb, c.rgb * 0.75, w); }`;
 // ground: the palette is in the vertex colours; grass / trampled earth / sand detail is chosen from that colour
 function groundMat() {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
   const u = { tG: { value: tex("sparse_grass") }, tE: { value: tex("dirt_floor") }, tS: { value: tex("coast_sand_01") } };
   m.onBeforeCompile = (s) => {
-    Object.assign(s.uniforms, u);
+    Object.assign(s.uniforms, u, OVU);
     s.vertexShader = s.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWP;")
       .replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvWP = (modelMatrix * vec4(transformed,1.0)).xyz;");
     s.fragmentShader = s.fragmentShader.replace("#include <common>", `#include <common>
-      varying vec3 vWP; uniform sampler2D tG; uniform sampler2D tE; uniform sampler2D tS; ${RATIO_GLSL}
+      varying vec3 vWP; uniform sampler2D tG; uniform sampler2D tE; uniform sampler2D tS; ${RATIO_GLSL} ${OV_GLSL}
       vec3 two(sampler2D t, vec2 p, float k){ return 0.5*(texture2D(t, p/k).rgb + texture2D(t, p/(k*3.7) + 0.37).rgb); }`)
       .replace("#include <color_fragment>", `
       vec3 pc = pow(max(vColor.rgb, vec3(0.0)), vec3(1.0/2.2));            // palette colour back in sRGB
@@ -264,7 +294,9 @@ function groundMat() {
              + dRatio(two(tS, p, 6.0), vec3(4.42, 5.81, 9.23), 5.59) * wS;
       float fade = smoothstep(900.0, 150.0, length(vWP - cameraPosition));
       #include <color_fragment>
-      diffuseColor.rgb *= mix(vec3(1.0), r, 0.8 * fade);`);
+      diffuseColor.rgb *= mix(vec3(1.0), r, 0.8 * fade);
+      ${OV_FRAG}`)
+      .replace("#include <emissivemap_fragment>", "#include <emissivemap_fragment>\ntotalEmissiveRadiance += gOv * uOvE;");
   };
   return m;
 }
@@ -414,7 +446,7 @@ const tmpV = new THREE.Vector3();
 function updateLabels() {
   for (const L of labels) {
     tmpV.copy(L.p).project(camera); const dist = camera.position.distanceTo(L.p);
-    const vis = showLabels && tmpV.z < 1 && Math.abs(tmpV.x) < 1.1 && Math.abs(tmpV.y) < 1.1 && dist < 3500;
+    const vis = showLabels && !bare && tmpV.z < 1 && Math.abs(tmpV.x) < 1.1 && Math.abs(tmpV.y) < 1.1 && dist < 3500;
     L.el.style.display = vis ? "block" : "none";
     if (vis) L.el.style.transform = `translate(${(tmpV.x * 0.5 + 0.5) * innerWidth}px, ${(-tmpV.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-100%)`;
   }
@@ -577,6 +609,58 @@ function gToggle(open) { galEl.hidden = !open; document.getElementById("b-gal").
 document.getElementById("b-gal").addEventListener("click", () => gToggle(galEl.hidden));
 document.getElementById("g-close").addEventListener("click", () => gToggle(false));
 addEventListener("keydown", (e) => { if (!galEl.hidden) { if (e.key === "Escape") gToggle(false); if (e.key === "ArrowRight") gShow((gIdx + 1) % SHOTS.length); if (e.key === "ArrowLeft") gShow((gIdx + SHOTS.length - 1) % SHOTS.length); } });
+
+// ---------- georeferenced overlays: today's satellite (Esri tiles, live) and old maps (s10_overlays.py) on the bare relief
+const ovSel = document.getElementById("ov"), ovA = document.getElementById("ov-a"), attrib = document.getElementById("attrib");
+const OVJ = await fetch("overlays/overlays.json").then(r => r.json()).catch(() => ({ frame: [0, 0, 4060, 4391], layers: [] }));
+const lonX = (x) => 30.985 + x / 67882.9, latY = (y) => 52.445 - (4390.9 - y) / 110540;
+const xLon = (lon) => (lon - 30.985) * 67882.9, yLat = (lat) => 4390.9 - (52.445 - lat) * 110540;
+const D2R = Math.PI / 180, psi = (lat) => Math.asinh(Math.tan(lat * D2R));
+const tileX = (lon, z) => (lon + 180) / 360 * 2 ** z, tileY = (lat, z) => (1 - psi(lat) / Math.PI) / 2 * 2 ** z;
+const tileLon = (tx, z) => tx / 2 ** z * 360 - 180, tileLat = (ty, z) => Math.atan(Math.sinh(Math.PI * (1 - 2 * ty / 2 ** z))) / D2R;
+function esriSlot(rect, z) {
+  const tx0 = Math.floor(tileX(lonX(rect[0]), z)), tx1 = Math.ceil(tileX(lonX(rect[2]), z));
+  const ty0 = Math.floor(tileY(latY(rect[3]), z)), ty1 = Math.ceil(tileY(latY(rect[1]), z));
+  const nx = tx1 - tx0, ny = ty1 - ty0, maxT = renderer.capabilities.maxTextureSize;
+  if (nx * 256 > maxT || ny * 256 > maxT) return null;
+  const cv = document.createElement("canvas"); cv.width = nx * 256; cv.height = ny * 256; const ctx = cv.getContext("2d");
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const jobs = []; for (let y = ty0; y < ty1; y++) for (let x = tx0; x < tx1; x++) jobs.push([x, y]);
+  let i = 0, pend = 0;
+  const next = () => { if (i >= jobs.length) return; const [x, y] = jobs[i++]; const im = new Image(); im.crossOrigin = "anonymous";
+    im.onload = () => { ctx.drawImage(im, (x - tx0) * 256, (y - ty0) * 256); if (!pend++) setTimeout(() => { pend = 0; tex.needsUpdate = true; }, 250); next(); };
+    im.onerror = next; im.src = `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`; };
+  for (let k = 0; k < 6; k++) next();
+  const latT = tileLat(ty0, z), xR = xLon(tileLon(tx0, z)), yR = yLat(latT), p0 = latT * D2R;
+  return { tex, R: new THREE.Vector4(xR, yR, 1 / (xLon(tileLon(tx1, z)) - xR), -1 / (psi(tileLat(ty1, z)) - psi(latT))),
+           K: new THREE.Vector3(1 / Math.cos(p0), Math.tan(p0), 1) };
+}
+const OVC = {};
+function overlay(id) {
+  if (!OVC[id]) {
+    if (id === "esri") OVC[id] = { A: esriSlot(OVJ.frame, 16), B: esriSlot([B[0], B[1], B[2], B[3]], 17),
+      attr: "Снимок: Esri World Imagery (Esri, Maxar, Earthstar Geographics и сообщество ГИС). Сегодняшний город на восстановленном рельефе XII–XIII вв.: засыпанные овраги и острова не совпадут." };
+    else { const L = OVJ.layers.find((l) => l.id === id); const t = TL.load(L.src); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+      const r = L.rect; OVC[id] = { A: { tex: t, R: new THREE.Vector4(r[0], r[1], 1 / (r[2] - r[0]), 1 / (r[3] - r[1])), K: new THREE.Vector3() }, B: null, attr: `${L.title}: ${L.note}.` }; }
+  }
+  return OVC[id];
+}
+let bare = false;
+const BARE = []; scene.traverse((o) => { if ((o.isMesh || o.isPoints) && o !== sky && !(o.name || "").toLowerCase().includes("terrain")) BARE.push(o); });
+function setBare(on) { bare = on; for (const o of BARE) o.visible = !on; document.getElementById("b-bare").setAttribute("aria-pressed", on); renderer.shadowMap.needsUpdate = true; }
+function setOverlay(id) {
+  if (!id) { OVU.uOvA.value = 0; attrib.hidden = true; return; }
+  const o = overlay(id); if (!o.A) return;
+  OVU.uTA.value = o.A.tex; OVU.uRA.value.copy(o.A.R); OVU.uKA.value.copy(o.A.K);
+  OVU.uBOn.value = o.B ? 1 : 0; if (o.B) { OVU.uTB.value = o.B.tex; OVU.uRB.value.copy(o.B.R); OVU.uKB.value.copy(o.B.K); }
+  OVU.uOvA.value = ovA.value / 100; OVU.uOvE.value = id === "esri" ? 0.55 : 0.2; attrib.textContent = o.attr; attrib.hidden = false; placeAttrib();
+}
+function placeAttrib() { attrib.style.bottom = `calc(${document.getElementById("bar").offsetHeight + 20}px + env(safe-area-inset-bottom, 0px))`;
+  attrib.style.maxWidth = "min(640px, calc(100vw - 32px))"; }
+addEventListener("resize", placeAttrib);
+ovSel.addEventListener("change", () => { const id = ovSel.value; if (id && !OVU.uOvA.value && !bare) setBare(true); if (!id && bare) setBare(false); setOverlay(id); });
+ovA.addEventListener("input", () => { if (ovSel.value) OVU.uOvA.value = ovA.value / 100; });
+document.getElementById("b-bare").addEventListener("click", () => setBare(!bare));
 
 setSun(+sunIn.value); hint();
 prog.style.width = "100%"; document.getElementById("loading").remove();
