@@ -96,7 +96,7 @@ select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 <div id="hint" class="panel"></div>
 <div id="bar" class="panel">
   <div class="group"><span class="lbl">Эпоха</span>
-    <button id="e-xii" aria-pressed="true">XII–XIII в.</button><button id="e-1681" aria-pressed="false">1681 г.</button></div>
+    <span id="eras" class="group"></span></div>
   <div class="sep"></div>
   <div class="group"><span class="lbl">Режим</span>
     <button id="m-orbit" aria-pressed="true">Обзор</button><button id="m-walk" aria-pressed="false">Прогулка</button></div>
@@ -157,8 +157,46 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 const OX = 2100, OY = 2000;                       // scene-frame origin shift
 // 10.11 epochs: the same relief and river with the town of another time. "?era=1681" loads gomiy_1681.glb + world_1681.json
 // (the town by the inventory of 1681); switching reloads the page and keeps the camera (sessionStorage).
-const ERA = new URLSearchParams(location.search).get("era") === "1681" ? "1681" : "", SFX = ERA ? "_" + ERA : "";
-const ERA_TEXT = { "1681": {
+// The ribbon of dates: id ("" = the base model), button text. Each id has gomiy_<id>.glb + world_<id>.json.
+const ERAS = [["", "около 1230"], ["1239", "1239 · погром"], ["1650", "около 1650"], ["1654", "1654 · осада"], ["1681", "1681"], ["1776", "1776"]];
+const _q = new URLSearchParams(location.search).get("era") || "";
+const ERA = ERAS.some((e) => e[0] === _q) ? _q : "", SFX = ERA ? "_" + ERA : "";
+const HOW = `<h3>Как ходить</h3>
+  <ul><li>«Обзор»: тянуть мышью или пальцем, колесо или щипок для масштаба.</li>
+  <li>«Прогулка»: WASD или стрелки, Shift для бега, тянуть мышью для поворота головы. На телефоне кнопки справа.</li></ul>
+  <h3>Авторство</h3>
+  <p>Реконструкция и 3D-модель: Pavel Novikau, 2026. Основа — книги О. А. Макушникова. Постройки построены процедурно по описаниям.</p>`;
+const ERA_TEXT = { "1239": {
+  title: "Гомий, около 1239 года: погром",
+  lead: "Взятие города монголами. В детинце и окольном городе раскопан слой сильного пожара, под ним брошенные вещи и сгоревшие мастерские. Год 1239 — предположение О. А. Макушникова: тогда же пал Чернигов. После погрома город около ста лет стоял без укреплений.",
+  info: `<h2>Что здесь настоящее</h2>
+  <p><span class="tag doc">раскопки</span>Слой сильного пожара в детинце и окольном городе; вал детинца горел, обгоревшие брёвна укреплений сползли ко рву; оружейная и ювелирная мастерские погибли в огне с инструментом и готовыми вещами (Макушников, «Гомель с древнейших времён…», с. 67–68; «Гомельское Поднепровье…», с. 68, 102, 110). На юго-восточной окраине южного посада следов пожара нет, на западной они есть.</p>
+  <p><span class="tag doc">книга</span>Дата: «можно предполагать, что это произошло в 1239 году», когда монголы взяли Чернигов. Город тот же, что в сцене «около 1230».</p>
+  <p><span class="tag hyp">гипотеза</span>Какие именно дома горят и какие уже сгорели (в детинце и окольном городе три четверти, на посадах треть), число и расстановка всадников, стан из юрт на полях к северо-западу, камнемёты перед напольной стеной. Ни состав войска, ни направление удара источниками не описаны.</p>` + HOW },
+  "1650": {
+  title: "Гомель около 1650 года",
+  lead: "Крепость перед войнами середины XVII века: замок со стенами-городнями и башнями, проездная башня с подъёмным мостом, «место» с городнями на валу и тремя брамами, частокол над обрывом к Сожу. Таким город встретил осады 1651 и 1654 годов.",
+  info: `<h2>Что здесь настоящее</h2>
+  <p><span class="tag doc">книга</span>Укрепления по описанию М. А. Ткачёва, которое приводит Макушников (с. 162–163, 169): замок на мысу площадью около 1,5 га, ров подковой, высокие деревянные стены под крышей, башни разной высоты, в том числе трёхъярусные, одна проездная башня с подъёмным мостом; город обнесён валом со стенами-городнями (известие 1561 г.), брамы Чечерская, Могилёвская, Речицкая и Водная. В 1633 г. замок чинили, к 1651 г. он «заново укреплён». Раскладка сверена с рисунком-реконструкцией «Гомель в XVII веке» (с. 164–165).</p>
+  <p><span class="tag doc">документ</span>Осада 1651 г.: городская стена из дубовых кольев с бойницами не менее чем в два ряда, при ней башня, Чечерские ворота с мостом.</p>
+  <p><span class="tag hyp">гипотеза</span>Число башен замка (8) и городской стены (15), их высоты, место третьей брамы. Число дворов до войн в книге не названо: взяты 165 дымов инвентаря 1681 г., улицы, рынок и храмы те же. Мост через Гомеюк у устья — только по рисунку.</p>` + HOW },
+  "1654": {
+  title: "Гомель, лето 1654 года: осада",
+  lead: "Осада казаками Ивана Золотаренко с 20 июня по 13 августа. Городские укрепления взяты «без особого труда», замок держался почти два месяца. Он загорелся от калёных ядер, осаждавшие нашли и взорвали подземный ход к Сожу, гарнизон остался без воды и сдался.",
+  info: `<h2>Что здесь настоящее</h2>
+  <p><span class="tag doc">документ</span>Письма Золотаренко 29 июня, 15 июля и 4 августа 1654 г. и рассказ Самовидца (Макушников, с. 118–119, 163, 209–214): поход около 20 тысяч казаков; «место» взято в начале осады; замок «велми оборонный», гарнизон около двух тысяч с пушками; осаждающие рассчитывают на «голод и безводие»; пожар от раскалённых ядер; подземный ход к Сожу найден и взорван; сдача 13 августа.</p>
+  <p><span class="tag doc">книга</span>Город — сцена «около 1650». За пять лет до этого, в 1649 г., его уже жгли, а в 1651 г. гарнизон вырезал мещан: каким «место» было к 1654 г., неизвестно.</p>
+  <p><span class="tag hyp">гипотеза</span>Что горит (в замке больше половины построек, в «месте» десятая часть и ещё столько же сгорело), табор из палаток и возов на полях за напольной стеной, три батареи с шанцами против замка (на рынке, у начала Речицкой и за Гомеюком), число и расстановка людей.</p>` + HOW },
+  "1776": {
+  title: "Гомель в 1776 году",
+  lead: "Город накануне постройки каменного дворца Румянцева: дубовая крепость 1737 года с башнями на замковой горе, старое «место» уже без стен, новые улицы за засыпающимся рвом и старообрядческая Спасова слобода под замком. Около 2,5 тысячи жителей. Через несколько лет замок сроют.",
+  info: `<h2>Что здесь настоящее</h2>
+  <p><span class="tag doc">документ</span>Замок: в 1737 г. по поручению старосты Чарторыйского заложена новая дубовая крепость с башнями, стенами и бойницами, углублены рвы, поправлен подъёмный мост; по описанию марта 1776 г. строения и укрепления в основном целы; срыт в 1780–1785 гг. (Макушников, с. 166, по М. А. Ткачёву). В замке Никольская церковь, с 1717 г. униатская.</p>
+  <p><span class="tag doc">документ</span>Город: 206 дворохозяйств в 1765 г.; по «поголовному списку» 1773–1775 гг. 1889 жителей и ещё 557 в Спасовой слободе; у бедняков «хаты бездворные», из них 56 у евреев (с. 154–161). На рынке вдвое больше лавок, чем в 1681 г. Церкви Пречистенская (с колокольней), Троицкая (с колокольней и оградой) и Спасская отстроены в дереве после 1756 г., костёл с домом причта у рынка — после пожара 1737 г. (с. 141–146). Городские укрепления к концу века уже не существовали; за старым рвом улицы Застрожье, Забрамская, Речицкое подвалье (с. 169, 172).</p>
+  <p><span class="tag doc">документ</span>Спасова слобода старообрядцев «под самым замком», Спасов монастырь в полуверсте к югу от замка, бескупольная деревянная церковь пророка Ильи (1737) на месте нынешней Ильинской (с. 131–133, 146–147).</p>
+  <p><span class="tag hyp">гипотеза</span>Все размеры и число башен замка (8). Улицы старого города оставлены как в 1681 г.; где именно шли улицы предместий и слободы, прочитано по рисунку кварталов на плане 1799 г. лишь приблизительно. Распределение 206 дворов (119 в старом городе, 87 за рвом), места «бездворных» хат (вдоль Гомеюка), число дворов слободы (около 90 на 557 жителей), облик церквей и монастыря, вид домов.</p>
+  <p><span class="tag hyp">гипотеза</span>План 1799 г. снят уже после постройки дворца и сноса замка: всё, что стоит на замковой горе, показано по описаниям, а не по плану.</p>` + HOW },
+  "1681": {
   title: "Гомель в 1681 году",
   lead: "Город по инвентарю Гомельского староства (октябрь 1681 г.): замок на горе над Сожем, обнесённый дубовыми палами с одиннадцатью избицами, и «место» за рвом с тремя брамами. Пять улиц веером от замка, рынок у замкового моста, четыре церкви и костёл. 165 дымов, около тысячи жителей: город через пятнадцать лет после войн середины века.",
   info: `<h2>Что здесь настоящее</h2>
@@ -177,8 +215,10 @@ const ERA_TEXT = { "1681": {
   <p>Реконструкция и 3D-модель: Pavel Novikau, 2026. Документальная основа — публикация О. А. Макушникова. Постройки построены процедурно по описаниям.</p>` } };
 if (ERA) { const t = ERA_TEXT[ERA]; document.title = t.title; document.getElementById("load-t").textContent = t.title;
   document.querySelector("#title h1").textContent = t.title; document.querySelector("#title p").textContent = t.lead; document.getElementById("info").innerHTML = t.info;
-  for (const id of ["b-gal", "b-schemes", "b-out"]) document.getElementById(id).hidden = true; }
-document.getElementById("e-xii").setAttribute("aria-pressed", !ERA); document.getElementById("e-1681").setAttribute("aria-pressed", ERA === "1681");
+  for (const id of ERA === "1239" ? ["b-gal", "b-schemes"] : ["b-gal", "b-schemes", "b-out"]) document.getElementById(id).hidden = true; }
+for (const [id, name] of ERAS) { const b = document.createElement("button"); b.textContent = name; b.setAttribute("aria-pressed", id === ERA);
+  b.addEventListener("click", () => switchEra(id)); document.getElementById("eras").appendChild(b); }
+let switchEra = () => {};                          // set once the scene is loaded
 const V = (x, y, z) => new THREE.Vector3(x - OX, z, -(y - OY));
 const app = document.getElementById("app");
 const prog = document.getElementById("prog"), stat = document.getElementById("stat");
@@ -579,7 +619,7 @@ let walkers = null, walkerMesh = null, walkerHeads = null, paths = [], cum = [];
 // ---------- smoke particles
 let smoke = null;
 function makeSmoke(src) {
-  const PER = isTouch ? 8 : 14, N = src.length * PER;
+  const PER = isTouch ? 8 : (src.some((q) => q[4]) ? 20 : 14), N = src.length * PER;
   const pos = new Float32Array(N * 3), age = new Float32Array(N), info = [];
   for (let s = 0; s < src.length; s++) for (let k = 0; k < PER; k++) {
     const i = s * PER + k; age[i] = Math.random(); info.push(s);
@@ -593,13 +633,13 @@ function makeSmoke(src) {
     vertexShader: `attribute float aAge; attribute float aDark; varying float vA; varying float vD; uniform float uScale;
       #include <fog_pars_vertex>
       void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mv; vA=aAge; vD=aDark;
-        gl_PointSize = (1.2 + 7.0*aAge) * uScale / -mv.z; vec4 mvPosition = mv;
+        gl_PointSize = (1.2 + 7.0*aAge) * (1.0 + 1.7*aDark) * uScale / -mv.z; vec4 mvPosition = mv;
         #include <fog_vertex>
       }`,
     fragmentShader: `varying float vA; varying float vD; uniform vec3 uLight;
       #include <fog_pars_fragment>
       void main(){ vec2 c = gl_PointCoord-0.5; float r = length(c); if(r>0.5) discard;
-        float a = smoothstep(0.5,0.0,r) * (1.0-vA) * smoothstep(0.0,0.08,vA) * (vD>0.5?0.55:0.32);
+        float a = smoothstep(0.5,0.0,r) * (1.0-vA) * smoothstep(0.0,0.08,vA) * (vD>0.5?0.72:0.32);
         vec3 col = mix(vec3(0.78,0.78,0.77), vec3(0.26,0.24,0.22), vD) * uLight; gl_FragColor = vec4(col, a);
         #include <fog_fragment>
       }` });
@@ -611,12 +651,31 @@ function updateSmoke(dt, t) {
   for (let i = 0; i < a.length; i++) {
     const s = smoke.src[smoke.info[i]], life = s[4] ? 9 : 12;
     a[i] += dt / life * (0.7 + 0.6 * s[3]); if (a[i] > 1) a[i] -= 1;
-    const g = a[i], rise = g * (16 + 6 * s[3]), sway = Math.sin(t * 0.6 + i) * g * 1.5;
-    const wx = g * g * 9 + sway, wy = g * 3;
+    const g = a[i], rise = g * (s[4] ? 60 + 30 * s[3] : 16 + 6 * s[3]), sway = Math.sin(t * 0.6 + i) * g * (s[4] ? 5 : 1.5);
+    const wx = g * g * (s[4] ? 46 : 9) + sway, wy = g * (s[4] ? 14 : 3);
     const v = V(s[0] + wx, s[1] + wy, s[2] + rise);
     p[i*3] = v.x; p[i*3+1] = v.y; p[i*3+2] = v.z;
   }
   smoke.geo.attributes.position.needsUpdate = true; smoke.geo.attributes.aAge.needsUpdate = true;
+}
+
+// ---------- 10.11 fire: flames over every building the layout marks as burning (world.fires = [x, y, z, size])
+let fire = null;
+function makeFire(src) {
+  if (!src || !src.length) return;
+  const PER = isTouch ? 6 : 14, N = src.length * PER, pos = new Float32Array(N * 3), seed = new Float32Array(N), siz = new Float32Array(N);
+  for (let s = 0; s < src.length; s++) for (let k = 0; k < PER; k++) { const i = s * PER + k, f = src[s], r = f[3] * 0.42;
+    const v = V(f[0] + (Math.random() - 0.5) * 2 * r, f[1] + (Math.random() - 0.5) * 2 * r, f[2] + Math.random() * 0.8); pos[i*3] = v.x; pos[i*3+1] = v.y; pos[i*3+2] = v.z; seed[i] = Math.random(); siz[i] = f[3]; }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3)); geo.setAttribute("aSeed", new THREE.BufferAttribute(seed, 1)); geo.setAttribute("aSize", new THREE.BufferAttribute(siz, 1));
+  const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    uniforms: { uScale: { value: innerHeight / 2 }, uTime: { value: 0 } },
+    vertexShader: `attribute float aSeed; attribute float aSize; varying float vL; uniform float uScale; uniform float uTime;
+      void main(){ float life = fract(uTime * 0.6 * (0.7 + 0.6 * aSeed) + aSeed * 7.0); vL = life; vec3 p = position;
+        p.y += life * life * (3.0 + aSize * 0.7); p.x += sin(uTime * 3.1 + aSeed * 40.0) * 0.4 * life; p.z += cos(uTime * 2.7 + aSeed * 23.0) * 0.4 * life;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = max((aSize * 0.75 * (1.0 - life) + 1.2) * uScale / -mv.z, 2.0); }`,
+    fragmentShader: `varying float vL; void main(){ vec2 c = gl_PointCoord - 0.5; float r = length(c); if (r > 0.5) discard;
+        float a = smoothstep(0.5, 0.05, r) * (1.0 - vL); vec3 col = mix(vec3(1.0, 0.78, 0.28), vec3(0.85, 0.16, 0.02), vL); gl_FragColor = vec4(col * a * 1.5, a); }` });
+  const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; scene.add(pts); fire = { mat };
 }
 
 // ---------- labels
@@ -792,7 +851,7 @@ function updateWalkers(dt, t) {
     walkerMesh.setMatrixAt(i, dummy.matrix); walkerHeads.setMatrixAt(i, dummy.matrix); });
   walkerMesh.instanceMatrix.needsUpdate = true; walkerHeads.instanceMatrix.needsUpdate = true;
 }
-makeSmoke(world.smoke); makeLabels(world.labels);
+makeSmoke(world.smoke); makeFire(world.fires); makeLabels(world.labels);
 // UI
 const vbox = document.getElementById("views");
 for (const v of world.views) { const b = document.createElement("button"); b.textContent = v.name; b.addEventListener("click", () => flyTo(v)); vbox.appendChild(b); }
@@ -918,11 +977,9 @@ document.getElementById("b-bare").addEventListener("click", () => setBare(!bare)
 bakeHeightAO();
 setSun(+sunIn.value); hint();
 // epoch switch: remember where the visitor stands and looks, reload with the other town
-function switchEra(e) { if (e === ERA) return;
+switchEra = (e) => { if (e === ERA) return;
   try { sessionStorage.setItem("gomiy_cam", JSON.stringify({ p: camera.position.toArray(), t: controls.target.toArray(), mode, yaw, pitch, w: [walkPos.x, walkPos.y], sun: sunIn.value })); } catch (err) {}
-  location.search = e ? "?era=" + e : ""; }
-document.getElementById("e-xii").addEventListener("click", () => switchEra(""));
-document.getElementById("e-1681").addEventListener("click", () => switchEra("1681"));
+  location.search = e ? "?era=" + e : ""; };
 try { const c = JSON.parse(sessionStorage.getItem("gomiy_cam") || "null"); sessionStorage.removeItem("gomiy_cam");
   if (c) { sunIn.value = c.sun; setSun(+c.sun);
     if (c.mode === "walk") { walkPos.x = c.w[0]; walkPos.y = c.w[1]; yaw = c.yaw; pitch = c.pitch; setMode("walk", true); }
@@ -942,11 +999,12 @@ renderer.setAnimationLoop(() => {
     camera.position.lerpVectors(fly.p0, fly.p1, e); controls.target.lerpVectors(fly.q0, fly.q1, e); if (fly.t >= 1) fly = null; }
   if (mode === "walk") updateWalk(dt); else controls.update();
   if (!still) waterU.uTime.value = treeU.uTime.value = t;
+  if (fire) fire.mat.uniforms.uTime.value = still ? 3.0 : t;
   lodTrees(); placeShadow();
   updateWalkers(still ? 0 : dt, t); updateSmoke(still ? 0 : dt, t); updateLabels();
   renderer.render(scene, camera);
   adaptRes(dt);
 });
 addEventListener("resize", () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight);
-  if (smoke) smoke.mat.uniforms.uScale.value = innerHeight / 2; });
+  if (smoke) smoke.mat.uniforms.uScale.value = innerHeight / 2; if (fire) fire.mat.uniforms.uScale.value = innerHeight / 2; });
 </script>
