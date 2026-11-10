@@ -485,6 +485,7 @@ const MATS = {
   tes: photoMat(0x6f6352, "weathered_planks", 2.2, { noTop: true }), tyn: photoMat(0x58493a, "bark_brown_02", 1.0, { rough: 1, extra: { side: THREE.DoubleSide } }),
   dark: new THREE.MeshStandardMaterial({ color: 0x0b0907, roughness: 1 }),
   gorbyl: photoMat(0x6b5d48, "weathered_planks", 2.8, { amt: 0.75 }),
+  stream: new THREE.MeshStandardMaterial({ color: 0x3a5a66, roughness: 0.12, metalness: 0.15, envMapIntensity: 1.4, side: THREE.DoubleSide }),      // the Gomeyuk in its ravine
   water: waterMat(),
   terrain: groundMat(),
 };
@@ -495,7 +496,7 @@ for (const [k, c] of Object.entries(MATCOL)) MATS[k] = new THREE.MeshStandardMat
 function pickMat(name) {
   name = (name || "").toLowerCase();
   if (name.startsWith("terrain")) return MATS.terrain;
-  for (const k of ["log_old", "log", "thatch", "plank", "wattle", "rawclay", "clay", "dark", "water", "tes", "tyn", "gorbyl", ...Object.keys(MATCOL)]) if (name.includes(k)) return MATS[k];
+  for (const k of ["stream", "log_old", "log", "thatch", "plank", "wattle", "rawclay", "clay", "dark", "water", "tes", "tyn", "gorbyl", ...Object.keys(MATCOL)]) if (name.includes(k)) return MATS[k];
   return null;
 }
 
@@ -618,8 +619,8 @@ let walkers = null, walkerMesh = null, walkerHeads = null, paths = [], cum = [];
 
 // ---------- smoke particles
 let smoke = null;
-function makeSmoke(src) {
-  const PER = isTouch ? 8 : (src.some((q) => q[4]) ? 20 : 14), N = src.length * PER;
+function makeSmoke(src, burning) {
+  const PER = isTouch ? 8 : (burning ? 20 : 14), N = src.length * PER;
   const pos = new Float32Array(N * 3), age = new Float32Array(N), info = [];
   for (let s = 0; s < src.length; s++) for (let k = 0; k < PER; k++) {
     const i = s * PER + k; age[i] = Math.random(); info.push(s);
@@ -629,11 +630,11 @@ function makeSmoke(src) {
   const dark = new Float32Array(N); for (let i = 0; i < N; i++) dark[i] = src[info[i]][4];
   geo.setAttribute("aDark", new THREE.BufferAttribute(dark, 1));
   const mat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, fog: true,
-    uniforms: { uScale: { value: innerHeight / 2 }, uLight: { value: new THREE.Color(1, 1, 1) }, ...THREE.UniformsLib.fog },
-    vertexShader: `attribute float aAge; attribute float aDark; varying float vA; varying float vD; uniform float uScale;
+    uniforms: { uScale: { value: innerHeight / 2 }, uBurn: { value: burning ? 1 : 0 }, uLight: { value: new THREE.Color(1, 1, 1) }, ...THREE.UniformsLib.fog },
+    vertexShader: `attribute float aAge; attribute float aDark; varying float vA; varying float vD; uniform float uScale; uniform float uBurn;
       #include <fog_pars_vertex>
       void main(){ vec4 mv = modelViewMatrix*vec4(position,1.0); gl_Position = projectionMatrix*mv; vA=aAge; vD=aDark;
-        gl_PointSize = (1.2 + 7.0*aAge) * (1.0 + 1.7*aDark) * uScale / -mv.z; vec4 mvPosition = mv;
+        gl_PointSize = (1.2 + 7.0*aAge) * (1.0 + uBurn*1.7*aDark) * uScale / -mv.z; vec4 mvPosition = mv;
         #include <fog_vertex>
       }`,
     fragmentShader: `varying float vA; varying float vD; uniform vec3 uLight;
@@ -644,15 +645,15 @@ function makeSmoke(src) {
         #include <fog_fragment>
       }` });
   const pts = new THREE.Points(geo, mat); pts.frustumCulled = false; scene.add(pts);
-  smoke = { src, info, geo, PER, mat };
+  smoke = { src, info, geo, PER, mat, burning };
 }
 function updateSmoke(dt, t) {
   if (!smoke) return; const p = smoke.geo.attributes.position.array, a = smoke.geo.attributes.aAge.array;
   for (let i = 0; i < a.length; i++) {
     const s = smoke.src[smoke.info[i]], life = s[4] ? 9 : 12;
     a[i] += dt / life * (0.7 + 0.6 * s[3]); if (a[i] > 1) a[i] -= 1;
-    const g = a[i], rise = g * (s[4] ? 60 + 30 * s[3] : 16 + 6 * s[3]), sway = Math.sin(t * 0.6 + i) * g * (s[4] ? 5 : 1.5);
-    const wx = g * g * (s[4] ? 46 : 9) + sway, wy = g * (s[4] ? 14 : 3);
+    const big = smoke.burning && s[4]; const g = a[i], rise = g * (big ? 60 + 30 * s[3] : 16 + 6 * s[3]), sway = Math.sin(t * 0.6 + i) * g * (big ? 5 : 1.5);
+    const wx = g * g * (big ? 46 : 9) + sway, wy = g * (big ? 14 : 3);
     const v = V(s[0] + wx, s[1] + wy, s[2] + rise);
     p[i*3] = v.x; p[i*3+1] = v.y; p[i*3+2] = v.z;
   }
@@ -766,6 +767,7 @@ root.traverse((o) => { if (o.isMesh) {
   // the river polygon of the GLB is narrower than the bed cut in the relief (a dark dry strip under the bank): one plane over
   // the whole frame instead, so the shore is where the relief crosses the water level, as the depth and shore maps assume
   if (o.material === MATS.water) oldWater.push(o);
+  if (o.material === MATS.stream) o.visible = false;        // the GLB ribbon follows the 2.5 m relief; the viewer drapes its own (below)
 } });
 // (the plane is built in world coordinates: in the meshopt-packed GLB the mesh carries a dequantisation transform)
 if (oldWater.length) { root.updateMatrixWorld(true); const b = new THREE.Box3(); for (const o of oldWater) { b.expandByObject(o); o.removeFromParent(); }
@@ -851,7 +853,15 @@ function updateWalkers(dt, t) {
     walkerMesh.setMatrixAt(i, dummy.matrix); walkerHeads.setMatrixAt(i, dummy.matrix); });
   walkerMesh.instanceMatrix.needsUpdate = true; walkerHeads.instanceMatrix.needsUpdate = true;
 }
-makeSmoke(world.smoke); makeFire(world.fires); makeLabels(world.labels);
+// the Gomeyuk stream draped on the viewer's height map (world.stream = [x, y, half-width])
+if (world.stream && world.stream.length > 2) { const P = world.stream, pos = [], idx = [];
+  for (let i = 0; i < P.length; i++) { const a = P[Math.max(i - 1, 0)], b = P[Math.min(i + 1, P.length - 1)], d = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1;
+    const ox = -(b[1] - a[1]) / d * P[i][2], oy = (b[0] - a[0]) / d * P[i][2];
+    for (const sg of [-1, 1]) { const x = P[i][0] + ox * sg, y = P[i][1] + oy * sg, v = V(x, y, Math.max(groundZ(x, y), groundZ(P[i][0], P[i][1])) + 0.3); pos.push(v.x, v.y, v.z); }
+    if (i) { const k = 2 * i; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); } }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, MATS.stream); m.name = "stream_draped"; m.receiveShadow = true; scene.add(m); }
+makeSmoke(world.smoke, !!(world.fires && world.fires.length)); makeFire(world.fires); makeLabels(world.labels);
 // UI
 const vbox = document.getElementById("views");
 for (const v of world.views) { const b = document.createElement("button"); b.textContent = v.name; b.addEventListener("click", () => flyTo(v)); vbox.appendChild(b); }
