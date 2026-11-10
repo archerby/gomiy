@@ -671,7 +671,7 @@ B = world.bounds;
   const t = new THREE.DataTexture(u16, HM.nx, HM.ny, THREE.RedFormat, THREE.HalfFloatType); t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true;
   HMU.tHM.value = t; HMU.tSD.value = shoreDist(HM, world.waterZ ?? 0.6); HMU.uHM.value.set(HM.x0 - HM.step / 2, HM.y0 - HM.step / 2, 1 / (HM.step * HM.nx), 1 / (HM.step * HM.ny)); }
 const gltf = await new Promise((res, rej) => loader.load("gomiy.glb", res, (e) => { if (e.total) prog.style.width = (15 + 70 * e.loaded / e.total) + "%"; }, rej));
-const root = gltf.scene; root.position.set(-OX, 0, OY); scene.add(root);
+const root = gltf.scene; root.position.set(-OX, 0, OY); scene.add(root); const oldWater = [];
 root.traverse((o) => { if (o.isMesh) {
   const m = pickMat(o.material && o.material.name) || pickMat(o.name);
   if (m) o.material = m;
@@ -679,9 +679,13 @@ root.traverse((o) => { if (o.isMesh) {
   else { o.castShadow = true; o.receiveShadow = true; }
   // the river polygon of the GLB is narrower than the bed cut in the relief (a dark dry strip under the bank): one plane over
   // the whole frame instead, so the shore is where the relief crosses the water level, as the depth and shore maps assume
-  if (o.material === MATS.water) { o.geometry.computeBoundingBox(); const b = o.geometry.boundingBox, w = b.max.x - b.min.x, h = b.max.z - b.min.z;
-    o.geometry = new THREE.PlaneGeometry(w, h).rotateX(-Math.PI / 2).translate(b.min.x + w / 2, world.waterZ ?? 0.6, b.min.z + h / 2); o.castShadow = false; }
+  if (o.material === MATS.water) oldWater.push(o);
 } });
+// (the plane is built in world coordinates: in the meshopt-packed GLB the mesh carries a dequantisation transform)
+if (oldWater.length) { root.updateMatrixWorld(true); const b = new THREE.Box3(); for (const o of oldWater) { b.expandByObject(o); o.removeFromParent(); }
+  const w = b.max.x - b.min.x, h = b.max.z - b.min.z;
+  const wm = new THREE.Mesh(new THREE.PlaneGeometry(w, h).rotateX(-Math.PI / 2).translate(b.min.x + w / 2, world.waterZ ?? 0.6, b.min.z + h / 2), MATS.water);
+  wm.name = "water"; wm.receiveShadow = true; scene.add(wm); }
 stat.textContent = "Расставляю деревья, людей и дымы…"; prog.style.width = "90%";
 // trees
 // 10.11: trees are split into 260 m cells. One instanced mesh per kind used to draw all 24 thousand trees every frame,
