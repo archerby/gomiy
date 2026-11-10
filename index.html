@@ -88,13 +88,16 @@ select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 
 <div id="app"></div>
-<div id="loading"><div class="box"><div class="t">Гомий XII – середины XIII в.</div><div class="bar"><i id="prog"></i></div><div class="s" id="stat">Загружаю рельеф и постройки…</div></div></div>
+<div id="loading"><div class="box"><div class="t" id="load-t">Гомий XII – середины XIII в.</div><div class="bar"><i id="prog"></i></div><div class="s" id="stat">Загружаю рельеф и постройки…</div></div></div>
 <div id="title" class="panel">
   <h1>Гомий XII – середины XIII в.</h1>
   <p>Реконструкция по книгам О. А. Макушникова и старым планам: детинец над Сожем у устья Гомеюка, окольный город между оврагами Гомеюк и Киевский спуск с напольным рвом, торг к северу от детинца, посады до Ильинского и Боярского спусков. Около 45 га.</p>
 </div>
 <div id="hint" class="panel"></div>
 <div id="bar" class="panel">
+  <div class="group"><span class="lbl">Эпоха</span>
+    <button id="e-xii" aria-pressed="true">XII–XIII в.</button><button id="e-1681" aria-pressed="false">1681 г.</button></div>
+  <div class="sep"></div>
   <div class="group"><span class="lbl">Режим</span>
     <button id="m-orbit" aria-pressed="true">Обзор</button><button id="m-walk" aria-pressed="false">Прогулка</button></div>
   <div class="sep"></div>
@@ -107,7 +110,7 @@ select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     <input id="ov-a" type="range" min="0" max="100" value="100" step="1" aria-label="Прозрачность подложки">
     <button id="b-bare" aria-pressed="true">Постройки</button><button id="b-out" aria-pressed="false">Контуры Гомия</button></div>
   <div class="sep"></div>
-  <div class="group"><button id="b-labels" aria-pressed="true">Подписи</button><button id="b-info" aria-pressed="false">Источники</button><button id="b-gal" aria-pressed="false">Кадры</button><a class="navlink" href="schemes.html">Схемы и расчёты</a></div>
+  <div class="group"><button id="b-labels" aria-pressed="true">Подписи</button><button id="b-info" aria-pressed="false">Источники</button><button id="b-gal" aria-pressed="false">Кадры</button><a class="navlink" id="b-schemes" href="schemes.html">Схемы и расчёты</a></div>
 </div>
 <div id="attrib" class="panel" hidden></div>
 <div id="touch"><span></span><button data-k="KeyW" aria-label="Вперёд">▲</button><span></span>
@@ -152,6 +155,30 @@ import { Sky } from "three/addons/objects/Sky.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 const OX = 2100, OY = 2000;                       // scene-frame origin shift
+// 10.11 epochs: the same relief and river with the town of another time. "?era=1681" loads gomiy_1681.glb + world_1681.json
+// (the town by the inventory of 1681); switching reloads the page and keeps the camera (sessionStorage).
+const ERA = new URLSearchParams(location.search).get("era") === "1681" ? "1681" : "", SFX = ERA ? "_" + ERA : "";
+const ERA_TEXT = { "1681": {
+  title: "Гомель в 1681 году",
+  lead: "Город по инвентарю Гомельского староства (октябрь 1681 г.): замок на горе над Сожем, обнесённый дубовыми палами с одиннадцатью избицами, и «место» за рвом с тремя брамами. Пять улиц веером от замка, рынок у замкового моста, четыре церкви и костёл. 165 дымов, около тысячи жителей: город через пятнадцать лет после войн середины века.",
+  info: `<h2>Что здесь настоящее</h2>
+  <p><span class="tag doc">документ</span>«Инвентарь староства Гомельского» 1681 г. (выдержка в книге О. А. Макушникова «Гомель с древнейших времён до конца XVIII века», 2002, с. 219–220): замок окружён дубовыми палами с 11 избицами, к нему мост на палах через ров и одна деревянная брама; в замке старый дом, кухня, винный погреб с ледником и свиранчиком, конюшня с возовней, конюшенка, винокурня, баня, церковь св. Николая, новый дом на двух свиранах с узким крыльцом к Сожу, у брамы тюрьма; всё деревянное под драницей. «Место» обставлено двойными дубовыми палами с избицами до самого Сожа, вокруг копаный ров, три брамы.</p>
+  <p><span class="tag doc">документ</span>Перечень дворов 1681 г. (с. 237–238) и глава о городе XVI–XVIII вв. (с. 169–172): улицы Чечерская, Троицкая, Спасская, Корниловская и Речицкая, 165 дымов; на Чечерской корчма и больница; рынок к северу от замка с 16 коморами и весовыми гирями; предместья — 38 дворов «около острога» и 8 «над Сожем под горой»; церкви Никольская (в замке), Пречистенская, Троицкая, Спасская и костёл, все деревянные.</p>
+  <p><span class="tag doc">книга</span>Места по привязке автора книги к нынешнему городу: Речицкая брама у облисполкома, Чечерская у начала ул. Советской, улицы к драмтеатру и «Белтелекому», Пречистенская церковь на усадьбе Петропавловского собора, рынок между музеем, собором и часовней. Раскладка стен и взвоз к пристани сверены с рисунком-реконструкцией «Гомель в XVII веке» (Ю. М. Лупиненко, с. 164–165); сам рисунок здесь не воспроизводится.</p>
+  <p><span class="tag doc">данные</span>Рельеф, река, острова и привязка к координатам — те же, что у города XII–XIII вв. Вал замка и линия напольного рва оставлены прежними: автор считает планировку неизменной «на протяжении столетий».</p>
+  <p><span class="tag hyp">гипотеза</span>Все размеры: в инвентаре нет ни саженей, ни локтей. Палы показаны толстой стеной в два ряда брёвен высотой 3,4–3,8 м, избицы — двухъярусными срубами (так их толкует автор книги). Расстановка избиц по стене, число избиц городской стены (15), место третьей брамы (у драмтеатра, в конце Спасской), расположение построек внутри замка, облик церквей, колоколен и костёла, вид домов и дворов, доля тесовых крыш, глубина участков, мост у третьей брамы.</p>
+  <p><span class="tag hyp">гипотеза</span>Наполнение: в каждом дворе клеть, хлев и поленница, в глубоких ещё навес, баня, стог (источник называет только состав усадеб: дом и хозяйственные постройки, у части бани, хлева, мастерские, шпихлеры). Дворы шляхты на Корниловской (Левоновичи, Михенкевичи, Плеские, Руцкие) и большой участок пана Красовского на Спасской названы в перечне 1681 г., но какой участок чей — неизвестно. Огороды и сады между дворами, избы слуг, амбары и навесы в замке, возы на рынке, гумно со скирдами, стога и стадо — для полноты картины; огороды за Чечерской брамой, за Гомеюком и за Речицкой брамой в документах упомянуты. Третья брама в источниках не названа и не локализована. Со стороны обрыва к Сожу стены нет: по инвентарю палы «упираются вторым концом» в реку.</p>
+  <h3>Как ходить</h3>
+  <ul><li>«Обзор»: тянуть мышью или пальцем, колесо или щипок для масштаба.</li>
+  <li>«Прогулка»: WASD или стрелки, Shift для бега, тянуть мышью для поворота головы. На телефоне кнопки справа.</li></ul>
+  <h3>Чего нет</h3>
+  <ul><li>Моста через Гомеюк у устья и парома на ходу.</li><li>Столкновений со стенами и интерьеров.</li><li>Кадров-рендеров и схем для этой эпохи.</li></ul>
+  <h3>Авторство</h3>
+  <p>Реконструкция и 3D-модель: Pavel Novikau, 2026. Документальная основа — публикация О. А. Макушникова. Постройки построены процедурно по описаниям.</p>` } };
+if (ERA) { const t = ERA_TEXT[ERA]; document.title = t.title; document.getElementById("load-t").textContent = t.title;
+  document.querySelector("#title h1").textContent = t.title; document.querySelector("#title p").textContent = t.lead; document.getElementById("info").innerHTML = t.info;
+  for (const id of ["b-gal", "b-schemes", "b-out"]) document.getElementById(id).hidden = true; }
+document.getElementById("e-xii").setAttribute("aria-pressed", !ERA); document.getElementById("e-1681").setAttribute("aria-pressed", ERA === "1681");
 const V = (x, y, z) => new THREE.Vector3(x - OX, z, -(y - OY));
 const app = document.getElementById("app");
 const prog = document.getElementById("prog"), stat = document.getElementById("stat");
@@ -596,12 +623,12 @@ function updateSmoke(dt, t) {
 const labels = [];
 let showLabels = true;
 function makeLabels(list) { for (const l of list) { const d = document.createElement("div"); d.className = "label3d"; d.textContent = l.t; document.body.appendChild(d);
-  labels.push({ el: d, p: V(l.p[0], l.p[1], l.p[2]) }); } }
+  labels.push({ el: d, p: V(l.p[0], l.p[1], l.p[2]), d: l.d || 3500 }); } }
 const tmpV = new THREE.Vector3();
 function updateLabels() {
   for (const L of labels) {
     tmpV.copy(L.p).project(camera); const dist = camera.position.distanceTo(L.p);
-    const vis = showLabels && !bare && tmpV.z < 1 && Math.abs(tmpV.x) < 1.1 && Math.abs(tmpV.y) < 1.1 && dist < 3500;
+    const vis = showLabels && !bare && tmpV.z < 1 && Math.abs(tmpV.x) < 1.1 && Math.abs(tmpV.y) < 1.1 && dist < L.d;
     L.el.style.display = vis ? "block" : "none";
     if (vis) L.el.style.transform = `translate(${(tmpV.x * 0.5 + 0.5) * innerWidth}px, ${(-tmpV.y * 0.5 + 0.5) * innerHeight}px) translate(-50%,-100%)`;
   }
@@ -663,14 +690,14 @@ function flyTo(v) {
 
 // ---------- load everything
 const loader = new GLTFLoader(); loader.setMeshoptDecoder(MeshoptDecoder);
-const world = await (await fetch("world.json")).json();
+const world = await (await fetch(`world${SFX}.json`)).json();
 prog.style.width = "15%"; stat.textContent = "Загружаю постройки и рельеф…";
 B = world.bounds;
 { const raw = Uint8Array.from(atob(world.height.data), c => c.charCodeAt(0)); const u16 = new Uint16Array(raw.buffer); const d = new Float32Array(u16.length);
   for (let i = 0; i < u16.length; i++) d[i] = half(u16[i]); HM = { x0: world.height.x0, y0: world.height.y0, step: world.height.step, nx: world.height.nx, ny: world.height.ny, d };
   const t = new THREE.DataTexture(u16, HM.nx, HM.ny, THREE.RedFormat, THREE.HalfFloatType); t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true;
   HMU.tHM.value = t; HMU.tSD.value = shoreDist(HM, world.waterZ ?? 0.6); HMU.uHM.value.set(HM.x0 - HM.step / 2, HM.y0 - HM.step / 2, 1 / (HM.step * HM.nx), 1 / (HM.step * HM.ny)); }
-const gltf = await new Promise((res, rej) => loader.load("gomiy.glb", res, (e) => { if (e.total) prog.style.width = (15 + 70 * e.loaded / e.total) + "%"; }, rej));
+const gltf = await new Promise((res, rej) => loader.load(`gomiy${SFX}.glb`, res, (e) => { if (e.total) prog.style.width = (15 + 70 * e.loaded / e.total) + "%"; }, rej));
 const root = gltf.scene; root.position.set(-OX, 0, OY); scene.add(root); const oldWater = [];
 root.traverse((o) => { if (o.isMesh) {
   const m = pickMat(o.material && o.material.name) || pickMat(o.name);
@@ -890,6 +917,16 @@ document.getElementById("b-bare").addEventListener("click", () => setBare(!bare)
 
 bakeHeightAO();
 setSun(+sunIn.value); hint();
+// epoch switch: remember where the visitor stands and looks, reload with the other town
+function switchEra(e) { if (e === ERA) return;
+  try { sessionStorage.setItem("gomiy_cam", JSON.stringify({ p: camera.position.toArray(), t: controls.target.toArray(), mode, yaw, pitch, w: [walkPos.x, walkPos.y], sun: sunIn.value })); } catch (err) {}
+  location.search = e ? "?era=" + e : ""; }
+document.getElementById("e-xii").addEventListener("click", () => switchEra(""));
+document.getElementById("e-1681").addEventListener("click", () => switchEra("1681"));
+try { const c = JSON.parse(sessionStorage.getItem("gomiy_cam") || "null"); sessionStorage.removeItem("gomiy_cam");
+  if (c) { sunIn.value = c.sun; setSun(+c.sun);
+    if (c.mode === "walk") { walkPos.x = c.w[0]; walkPos.y = c.w[1]; yaw = c.yaw; pitch = c.pitch; setMode("walk", true); }
+    else { camera.position.fromArray(c.p); controls.target.fromArray(c.t); controls.update(); } } } catch (err) {}
 prog.style.width = "100%"; document.getElementById("loading").remove();
 window.__gomiy = { renderer, scene, camera, controls };
 
